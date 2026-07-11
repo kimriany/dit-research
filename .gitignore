@@ -1,0 +1,61 @@
+# Virtual environment
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Model/package cache
+cache/
+.huggingface/
+
+# Model weights
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.onnx
+
+# Experiment outputs
+logs/
+runs/
+outputs/
+results/
+activations/
+checkpoints/
+wandb/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Secrets
+.env
+.env.*
+*.key
+*.pem
+token.txt
+secrets.json
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.log
+
+# Accidental root-level virtual environment
+/bin/
+/include/
+/lib/
+/lib64
+/share/
+/pyvenv.cfg
+environment-report.txt
