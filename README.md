@@ -38,6 +38,7 @@ E1~E4는 기존 실험 scaffold로 계속 보존됩니다. 현재 memory 연구�
 - 4방향 2D scan, 정확한 diffusion log-SNR lookup, gate/state diagnostics
 - cosine/linear noise schedule, ε-prediction, DDIM sampling, CFG
 - EMA, mixed precision, checkpoint/resume, 고정 validation noise bank
+- 시작/재개 상태, step 진행률, 실제 sampler epoch, ETA, 처리량 progress 로그
 - 파라미터·analytic MACs 비교, forward/train throughput와 VRAM 측정
 - Clean-FID 및 torch-fidelity wrapper
 - 실험 matrix 실행과 결과 CSV 집계

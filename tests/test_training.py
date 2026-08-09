@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from dataclasses import replace
@@ -77,6 +78,16 @@ class TrainingTests(unittest.TestCase):
             self.assertEqual(second.step, 6)
             self.assertEqual(second.ema.num_updates, 6)
             self.assertEqual(second.microbatches_consumed, 6)
+            self.assertEqual(second.latest_metrics["steps_remaining"], 0)
+            self.assertEqual(second.latest_metrics["progress_percent"], 100.0)
+            self.assertEqual(second.latest_metrics["epochs_completed"], 1)
+            self.assertEqual(second.latest_metrics["epoch"], 2)
+            self.assertEqual(second.latest_metrics["epoch_progress_percent"], 20.0)
+            self.assertIn("eta_human", second.latest_metrics)
+            with (Path(temporary) / "resume_test" / "metrics.jsonl").open() as handle:
+                events = [json.loads(line) for line in handle]
+            epoch_events = [event for event in events if event["event"] == "epoch_complete"]
+            self.assertEqual([event["epoch"] for event in epoch_events], [1])
 
             for name, expected in uninterrupted.model.state_dict().items():
                 with self.subTest(model_key=name):

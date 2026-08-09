@@ -2,6 +2,8 @@
 
 이 문서는 `configs/matrices/memory_pilot_25k.yaml`의 A0/M0/M1/MS/M2 실험을 단일 NVIDIA RTX PRO 6000 Blackwell 96GB에서 실행하는 순서다. 전체 연구 논리는 `docs/noise_adaptive_memory_plan.md`를 따른다.
 
+학습 stdout에는 시작 시 `[start]`, `log_every`마다 `[progress]`, 실제 deterministic sampler가 한 epoch을 마칠 때 `[epoch]` 메시지가 출력된다. Progress 줄에는 step/전체 비율, 현재 epoch 진행률, loss, gradient norm, images/s, elapsed와 ETA가 포함되며 원본 JSON은 `metrics.jsonl`에도 계속 저장된다.
+
 ## 0. 환경 설치와 기록
 
 ```bash

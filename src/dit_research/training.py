@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import time
 from dataclasses import replace
 from pathlib import Path
@@ -47,6 +48,17 @@ def _resume_fingerprint(config: ExperimentConfig) -> str:
         payload["train"].pop(key, None)
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _format_duration(seconds: float | None) -> str:
+    if seconds is None or not math.isfinite(seconds):
+        return "unknown"
+    total = max(0, int(round(seconds)))
+    hours, remainder = divmod(total, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    if hours:
+        return f"{hours:d}h{minutes:02d}m{seconds:02d}s"
+    return f"{minutes:02d}m{seconds:02d}s"
 
 
 class Trainer:
@@ -115,6 +127,7 @@ class Trainer:
         self.dropout_generator = make_generator(self.device, self.seeds["dropout"])
 
         self.datasets: DatasetBundle = build_datasets(config.data, config.model, self.seeds["data"])
+        self.train_batches_per_epoch = len(self.datasets.train) // config.train.batch_size
         self.microbatches_consumed = 0
         self._reset_loaders()
         self.step = 0
@@ -134,6 +147,10 @@ class Trainer:
         else:
             dump_config(config, self.output_dir / "resolved_config.yaml")
             self._write_manifest(precision_warning)
+        self.was_resumed = checkpoint_path is not None
+        self.last_reported_completed_epoch = (
+            self.microbatches_consumed // self.train_batches_per_epoch
+        )
 
     def _reset_loaders(self) -> None:
         self.train_loader, self.validation_loader = build_loaders(
@@ -292,6 +309,74 @@ class Trainer:
     @property
     def wall_seconds(self) -> float:
         return self.wall_seconds_before_resume + (time.perf_counter() - self.started_at)
+
+    def _progress_state(self) -> dict[str, int | float | str | None]:
+        completed_epochs, batches_in_epoch = divmod(
+            self.microbatches_consumed,
+            self.train_batches_per_epoch,
+        )
+        progress_fraction = self.step / self.config.train.max_steps
+        elapsed = self.wall_seconds
+        eta_seconds = (
+            elapsed / self.step * (self.config.train.max_steps - self.step)
+            if self.step
+            else None
+        )
+        return {
+            "max_steps": self.config.train.max_steps,
+            "steps_remaining": self.config.train.max_steps - self.step,
+            "progress_percent": 100.0 * progress_fraction,
+            "epochs_completed": completed_epochs,
+            "epoch": completed_epochs + 1,
+            "epoch_progress_percent": 100.0
+            * batches_in_epoch
+            / self.train_batches_per_epoch,
+            "estimated_total_epochs": self.config.train.max_steps
+            * self.config.train.grad_accum_steps
+            / self.train_batches_per_epoch,
+            "eta_seconds": eta_seconds,
+            "eta_human": _format_duration(eta_seconds),
+            "elapsed_human": _format_duration(elapsed),
+        }
+
+    def _print_start(self) -> None:
+        progress = self._progress_state()
+        mode = "resume" if self.was_resumed else "fresh"
+        print(
+            "[start] "
+            f"run={self.config.experiment.name} mode={mode} "
+            f"device={self.device.type} precision={self.precision} "
+            f"step={self.step}/{self.config.train.max_steps} "
+            f"epoch={progress['epoch']} "
+            f"effective_batch={self.config.effective_batch_size} "
+            f"train_samples={len(self.datasets.train)} "
+            f"estimated_epochs={progress['estimated_total_epochs']:.2f} "
+            f"log_every={self.config.train.log_every}",
+            flush=True,
+        )
+
+    def _emit_completed_epoch_events(self) -> None:
+        completed_epochs = self.microbatches_consumed // self.train_batches_per_epoch
+        while self.last_reported_completed_epoch < completed_epochs:
+            self.last_reported_completed_epoch += 1
+            event = {
+                "event": "epoch_complete",
+                "epoch": self.last_reported_completed_epoch,
+                "step": self.step,
+                "samples_seen": self.samples_seen,
+                "microbatches_consumed": self.microbatches_consumed,
+                "wall_seconds": self.wall_seconds,
+            }
+            append_jsonl(event, self.output_dir / "metrics.jsonl")
+            print(
+                "[epoch] "
+                f"run={self.config.experiment.name} "
+                f"epoch={event['epoch']} complete "
+                f"step={self.step}/{self.config.train.max_steps} "
+                f"samples={self.samples_seen} "
+                f"elapsed={_format_duration(float(event['wall_seconds']))}",
+                flush=True,
+            )
 
     def _train_step(self) -> tuple[float, float, bool]:
         self.model.train()
@@ -556,11 +641,25 @@ class Trainer:
         if self.device.type == "cuda":
             metrics["peak_allocated_mb"] = torch.cuda.max_memory_allocated(self.device) / 2**20
             metrics["peak_reserved_mb"] = torch.cuda.max_memory_reserved(self.device) / 2**20
+        metrics["wall_seconds"] = self.wall_seconds
+        metrics.update(self._progress_state())
         append_jsonl(metrics, self.output_dir / "metrics.jsonl")
         self.latest_metrics = metrics
         self.last_log_samples = self.samples_seen
         self.train_seconds_since_log = 0.0
         print(json.dumps(metrics, sort_keys=True), flush=True)
+        print(
+            "[progress] "
+            f"run={self.config.experiment.name} "
+            f"step={self.step}/{self.config.train.max_steps} "
+            f"({metrics['progress_percent']:.1f}%) "
+            f"epoch={metrics['epoch']} "
+            f"({metrics['epoch_progress_percent']:.1f}%) "
+            f"loss={train_loss:.4f} grad={gradient_norm:.4f} "
+            f"img/s={metrics['interval_images_per_second']:.1f} "
+            f"elapsed={metrics['elapsed_human']} eta={metrics['eta_human']}",
+            flush=True,
+        )
         return metrics
 
     def _write_final_metrics(self) -> None:
@@ -591,6 +690,7 @@ class Trainer:
     def run(self) -> dict[str, Any]:
         last_loss = float("nan")
         last_gradient_norm = float("nan")
+        self._print_start()
         while self.step < self.config.train.max_steps:
             train_started = time.perf_counter()
             last_loss, last_gradient_norm, updated = self._train_step()
@@ -602,6 +702,7 @@ class Trainer:
                 or self.step == self.config.train.max_steps
             ):
                 self.save_checkpoint()
+            self._emit_completed_epoch_events()
             should_log = self.step % self.config.train.log_every == 0
             if should_log or self.step == self.config.train.max_steps:
                 self._log(last_loss, last_gradient_norm)
