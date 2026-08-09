@@ -85,7 +85,7 @@ class MemoryTests(unittest.TestCase):
         self.assertTrue(torch.equal(coupled, torch.zeros_like(coupled)))
         self.assertTrue(torch.equal(separated, torch.ones_like(separated)))
         self.assertTrue(torch.equal(static, torch.full_like(static, 0.5)))
-        self.assertEqual(float(static.std(unbiased=False)), 0.0)
+        self.assertEqual(float(static.detach().std(unbiased=False)), 0.0)
         self.assertTrue(torch.equal(adaptive, torch.full_like(adaptive, 0.5)))
 
         with torch.no_grad():
@@ -96,8 +96,8 @@ class MemoryTests(unittest.TestCase):
                 mixer.lambda_mlp[-1].bias.zero_()
         static_changed = mixers[2].decoupling_strength(noise).reshape(-1)
         adaptive_changed = mixers[3].decoupling_strength(noise).reshape(-1)
-        self.assertEqual(float(static_changed.std(unbiased=False)), 0.0)
-        self.assertGreater(float(adaptive_changed.std(unbiased=False)), 0.0)
+        self.assertEqual(float(static_changed.detach().std(unbiased=False)), 0.0)
+        self.assertGreater(float(adaptive_changed.detach().std(unbiased=False)), 0.0)
         mixers[3].set_lambda_override(0.25)
         self.assertTrue(
             torch.equal(
@@ -202,12 +202,18 @@ class MemoryTests(unittest.TestCase):
                 0.0,
             )
             self.assertAlmostEqual(
-                float(separation[0]), resolved[f"b{block_index + 1:02d}"]
+                float(separation[0].detach()),
+                resolved[f"b{block_index + 1:02d}"],
             )
         model.set_memory_intervention()
         restored = model.blocks[model.memory_block_indices[0]].attention
         self.assertGreater(
-            float(restored.decoupling_strength(noise).std(unbiased=False)), 0.0
+            float(
+                restored.decoupling_strength(noise)
+                .detach()
+                .std(unbiased=False)
+            ),
+            0.0,
         )
 
     def test_cfg_and_ddim_use_memory_model_without_cross_sample_state(self) -> None:

@@ -105,9 +105,12 @@ class Trainer:
             lr=config.train.learning_rate,
             weight_decay=config.train.weight_decay,
         )
-        self.scaler = torch.cuda.amp.GradScaler(
-            enabled=self.device.type == "cuda" and self.precision == "fp16"
-        )
+        scaler_enabled = self.device.type == "cuda" and self.precision == "fp16"
+        if hasattr(torch.amp, "GradScaler"):
+            self.scaler = torch.amp.GradScaler("cuda", enabled=scaler_enabled)
+        else:
+            # PyTorch 2.2 compatibility; newer releases expose torch.amp.GradScaler.
+            self.scaler = torch.cuda.amp.GradScaler(enabled=scaler_enabled)
         self.diffusion_generator = make_generator(self.device, self.seeds["diffusion"])
         self.dropout_generator = make_generator(self.device, self.seeds["dropout"])
 
