@@ -220,7 +220,10 @@ class Trainer:
         # source; pickle-based full loading can execute code from a hostile file.
         checkpoint = torch.load(
             path,
-            map_location=self.device,
+            # Keep CPU and CUDA RNG byte states on CPU.  Model and optimizer
+            # load_state_dict calls below move their tensors to the parameter
+            # devices, while torch.set_rng_state requires a CPU ByteTensor.
+            map_location="cpu",
             weights_only=False,
         )
         checkpoint_code_hash = checkpoint.get("training_code_hash")

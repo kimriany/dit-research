@@ -176,9 +176,24 @@ def capture_rng_state() -> dict[str, Any]:
 
 def restore_rng_state(state: dict[str, Any]) -> None:
     random.setstate(state["python"])
-    torch.set_rng_state(state["torch"])
+    torch_state = state["torch"]
+    if not isinstance(torch_state, Tensor):
+        raise TypeError("saved torch RNG state must be a tensor")
+    torch.set_rng_state(
+        torch_state.detach().to(device="cpu", dtype=torch.uint8).contiguous()
+    )
     if "cuda" in state and torch.cuda.is_available():
-        torch.cuda.set_rng_state_all(state["cuda"])
+        cuda_states = state["cuda"]
+        if not isinstance(cuda_states, (list, tuple)) or not all(
+            isinstance(item, Tensor) for item in cuda_states
+        ):
+            raise TypeError("saved CUDA RNG state must be a sequence of tensors")
+        torch.cuda.set_rng_state_all(
+            [
+                item.detach().to(device="cpu", dtype=torch.uint8).contiguous()
+                for item in cuda_states
+            ]
+        )
 
 
 def make_grid(images: Tensor, nrow: int | None = None, padding: int = 2) -> Tensor:
