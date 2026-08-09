@@ -154,7 +154,7 @@ python -m pytest -q
 python scripts/check_memory_backend.py --require-sm120
 ```
 
-`check_memory_backend.py`는 실제 연구 shape인 `B=2,T=256,H=6,K=V=64`, BF16에서 raw recurrence와 full mixer의 reference/FLA output, final state, input/parameter gradients를 비교한다. 실패하면 tolerance를 임의로 늘려 통과시키지 말고 환경 또는 kernel 문제를 먼저 조사한다. `backend: fla`는 import/CUDA 실패 시 reference로 조용히 fallback하지 않는다.
+`check_memory_backend.py`는 실제 연구 shape인 `B=2,T=256,H=6,K=V=64`, BF16에서 raw recurrence와 full mixer의 reference/FLA output, final state, input/parameter gradients를 비교한다. Output/state는 elementwise tolerance, BF16 gradient는 global relative L2와 cosine을 중심으로 판정하고 sparse max error와 mismatch fraction도 기록한다. 실패하면 tolerance를 임의로 늘려 통과시키지 말고 환경 또는 kernel 문제를 먼저 조사한다. `backend: fla`는 import/CUDA 실패 시 reference로 조용히 fallback하지 않는다.
 
 확인할 시스템 정보:
 

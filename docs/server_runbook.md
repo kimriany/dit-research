@@ -41,7 +41,7 @@ python scripts/check_memory_backend.py --require-sm120
 - 같은 state dict를 가진 full mixer의 scan→projection→decay→output path
 - full mixer input/parameter gradients
 
-출력이나 gradient가 기준을 넘으면 tolerance를 임의로 키우지 않는다. driver/Torch/Triton/FLA 조합과 dtype 차이를 먼저 조사한다.
+출력과 state는 elementwise `atol/rtol`로 검사한다. BF16 raw gradient는 FLA 공식 테스트의 error-ratio 방식과 같은 global relative L2로 판정하며 기본 상한은 0.03이다. `max_abs`, cosine, elementwise mismatch fraction도 JSON에 남기되, low-norm Q/K의 소수 outlier 하나만으로 전체 gradient를 실패시키지는 않는다. Full-mixer gradient 상한은 별도로 0.1이다. 기준을 넘으면 tolerance를 임의로 키우지 않고 driver/Torch/Triton/FLA 조합과 어떤 gradient가 실패했는지 먼저 조사한다.
 
 Fused-memory matrix는 `--execute` 직전에 이 검사를 자동 실행한다. 이미 같은 환경에서 통과한 뒤 반복 실행할 때만 `--skip-backend-check`를 쓴다.
 

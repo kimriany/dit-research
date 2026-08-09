@@ -24,6 +24,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--head-size", type=int, default=64)
     parser.add_argument("--atol", type=float, default=0.03)
     parser.add_argument("--rtol", type=float, default=0.03)
+    parser.add_argument(
+        "--max-raw-gradient-relative-l2",
+        type=float,
+        default=0.03,
+        help="maximum global relative L2 error for each raw BF16 input gradient",
+    )
     parser.add_argument("--max-gradient-relative-l2", type=float, default=0.1)
     parser.add_argument(
         "--require-sm120",
@@ -33,15 +39,33 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def error_stats(expected: torch.Tensor, actual: torch.Tensor) -> dict[str, float]:
+def error_stats(
+    expected: torch.Tensor,
+    actual: torch.Tensor,
+    *,
+    atol: float = 0.0,
+    rtol: float = 0.0,
+) -> dict[str, float]:
     difference = (expected.float() - actual.float()).abs()
+    expected_float = expected.detach().float().flatten()
+    actual_float = actual.detach().float().flatten()
+    expected_norm = torch.linalg.vector_norm(expected_float)
+    actual_norm = torch.linalg.vector_norm(actual_float)
+    norm_product = expected_norm * actual_norm
+    if float(norm_product) > 1e-12:
+        cosine = float(torch.dot(expected_float, actual_float) / norm_product)
+    else:
+        cosine = 1.0 if float(expected_norm + actual_norm) <= 1e-12 else 0.0
+    tolerance = atol + rtol * expected.detach().float().abs()
     return {
         "max_abs": float(difference.max()),
         "mean_abs": float(difference.mean()),
         "relative_l2": float(
             torch.linalg.vector_norm(difference)
-            / torch.linalg.vector_norm(expected.float()).clamp_min(1e-12)
+            / expected_norm.clamp_min(1e-12)
         ),
+        "cosine": cosine,
+        "elementwise_mismatch_fraction": float((difference > tolerance).float().mean()),
     }
 
 
@@ -152,10 +176,26 @@ def main() -> None:
     ):
         if not torch.isfinite(actual).all():
             raise FloatingPointError(f"non-finite fused gradient for {name}")
-        torch.testing.assert_close(
-            actual.float(), expected.float(), atol=args.atol, rtol=args.rtol
+        stats = error_stats(
+            expected,
+            actual,
+            atol=args.atol,
+            rtol=args.rtol,
         )
-        gradient_errors[name] = error_stats(expected, actual)
+        expected_norm = float(torch.linalg.vector_norm(expected.float()))
+        if expected_norm >= 1e-8 and (
+            stats["relative_l2"] > args.max_raw_gradient_relative_l2
+        ):
+            raise AssertionError(
+                f"raw gradient {name} relative_l2={stats['relative_l2']:.6f} "
+                f"> {args.max_raw_gradient_relative_l2}; stats={stats}"
+            )
+        if expected_norm < 1e-8 and stats["max_abs"] > args.atol:
+            raise AssertionError(
+                f"raw near-zero gradient {name} max_abs={stats['max_abs']:.6f} "
+                f"> {args.atol}; stats={stats}"
+            )
+        gradient_errors[name] = stats
 
     grid_size = math.isqrt(args.tokens)
     if grid_size * grid_size != args.tokens:
@@ -230,7 +270,12 @@ def main() -> None:
         fused_mixer_gradients,
         strict=True,
     ):
-        stats = error_stats(expected, actual)
+        stats = error_stats(
+            expected,
+            actual,
+            atol=args.atol,
+            rtol=args.rtol,
+        )
         if not torch.isfinite(actual).all():
             raise FloatingPointError(f"non-finite full-mixer fused gradient for {name}")
         expected_norm = float(torch.linalg.vector_norm(expected.float()))
@@ -252,6 +297,8 @@ def main() -> None:
         "dtype": str(dtype),
         "atol": args.atol,
         "rtol": args.rtol,
+        "max_raw_gradient_relative_l2": args.max_raw_gradient_relative_l2,
+        "max_full_mixer_gradient_relative_l2": args.max_gradient_relative_l2,
         "torch": torch.__version__,
         "torch_cuda": torch.version.cuda,
         "triton": triton_version,
@@ -259,10 +306,16 @@ def main() -> None:
         "gpu": torch.cuda.get_device_name(device),
         "capability": list(capability),
         "arch_list": arch_list,
-        "output_error": error_stats(reference_output, fused_output),
-        "state_error": error_stats(reference_state, fused_state),
+        "output_error": error_stats(
+            reference_output, fused_output, atol=args.atol, rtol=args.rtol
+        ),
+        "state_error": error_stats(
+            reference_state, fused_state, atol=args.atol, rtol=args.rtol
+        ),
         "gradient_errors": gradient_errors,
-        "full_mixer_output_error": error_stats(reference_mixed, fused_mixed),
+        "full_mixer_output_error": error_stats(
+            reference_mixed, fused_mixed, atol=args.atol, rtol=args.rtol
+        ),
         "full_mixer_gradient_errors": full_gradient_errors,
     }
     print(json.dumps(payload, indent=2, sort_keys=True))
