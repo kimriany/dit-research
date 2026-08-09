@@ -78,7 +78,14 @@ def main() -> None:
     checkpoint_path = Path(args.checkpoint)
     if not checkpoint_path.is_file():
         raise FileNotFoundError(checkpoint_path)
-    checkpoint = torch.load(checkpoint_path, map_location="cpu")
+    # Project checkpoints include the dataclass-compatible experiment config,
+    # not just tensor weights.  Full pickle loading is therefore required and
+    # must only be used for checkpoints from a trusted training run.
+    checkpoint = torch.load(
+        checkpoint_path,
+        map_location="cpu",
+        weights_only=False,
+    )
     config = ExperimentConfig.from_dict(checkpoint["config"])
     sampling = replace(
         config.sampling,

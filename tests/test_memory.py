@@ -197,7 +197,10 @@ class MemoryTests(unittest.TestCase):
         for block_index in model.memory_block_indices:
             mixer = model.blocks[block_index].attention
             separation = mixer.decoupling_strength(noise).reshape(-1)
-            self.assertEqual(float(separation.std(unbiased=False)), 0.0)
+            self.assertEqual(
+                float(separation.detach().std(unbiased=False)),
+                0.0,
+            )
             self.assertAlmostEqual(
                 float(separation[0]), resolved[f"b{block_index + 1:02d}"]
             )

@@ -211,7 +211,15 @@ class Trainer:
         return path
 
     def _load_checkpoint(self, path: Path) -> None:
-        checkpoint = torch.load(path, map_location=self.device)
+        # Training checkpoints contain optimizer/RNG/config objects in addition
+        # to tensors, so they are intentionally not weights-only archives.
+        # Only resume checkpoints produced by this project or another trusted
+        # source; pickle-based full loading can execute code from a hostile file.
+        checkpoint = torch.load(
+            path,
+            map_location=self.device,
+            weights_only=False,
+        )
         checkpoint_code_hash = checkpoint.get("training_code_hash")
         current_code_hash = self.environment["training_code_hash"]
         if checkpoint_code_hash != current_code_hash and not self.allow_code_change:
