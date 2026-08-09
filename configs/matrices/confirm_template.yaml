@@ -1,0 +1,9 @@
+name: tapered_ffn_confirmation
+template: true
+phase: confirmation
+max_steps: 50000
+runs:
+  - {id: e0, config: configs/baseline/dit_s2.yaml, seeds: [42, 123, 777]}
+  - {id: e1, config: configs/controls/dit_s2_uniform_r5.yaml, seeds: [42, 123, 777]}
+  # Replace this config with the pilot winner, then set template: false.
+  - {id: selected, config: configs/proposed/dit_s2_taper_b.yaml, seeds: [42, 123, 777]}

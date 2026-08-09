@@ -1,0 +1,10 @@
+name: noise_adaptive_memory_pilot_25k
+template: false
+phase: pilot
+max_steps: 25000
+runs:
+  - {id: a0_softmax, config: configs/baseline/dit_s2.yaml, seeds: [11]}
+  - {id: m0_coupled, config: configs/memory/dit_s2_coupled.yaml, seeds: [11]}
+  - {id: m1_separated, config: configs/memory/dit_s2_separated.yaml, seeds: [11]}
+  - {id: ms_static, config: configs/memory/dit_s2_static.yaml, seeds: [11]}
+  - {id: m2_adaptive, config: configs/memory/dit_s2_adaptive.yaml, seeds: [11]}

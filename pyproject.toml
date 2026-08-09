@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dit-research"
+version = "0.1.0"
+description = "Controlled hybrid-attention and noise-adaptive memory experiments for Diffusion Transformers"
+requires-python = ">=3.10"
+dependencies = [
+  "Pillow>=10",
+  "PyYAML>=6",
+  "torch>=2.2",
+  "torchvision>=0.17",
+  "tqdm>=4.65",
+]
+
+[project.optional-dependencies]
+eval = [
+  "clean-fid>=0.1.35,<0.2",
+  "torch-fidelity>=0.3,<0.5",
+]
+memory = [
+  "torch>=2.7",
+  "triton>=3.3",
+  "einops>=0.8",
+  "fla-core[cuda]==0.5.1",
+]
+dev = [
+  "pytest>=8",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

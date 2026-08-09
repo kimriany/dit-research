@@ -1,0 +1,10 @@
+name: noise_adaptive_memory_confirmation
+template: true
+phase: confirmation
+max_steps: 50000
+runs:
+  - {id: a0_softmax, config: configs/baseline/dit_s2.yaml, seeds: [42, 123, 777]}
+  # MS is mandatory: it isolates explicit log-SNR adaptation from a learned constant.
+  - {id: ms_static, config: configs/memory/dit_s2_static.yaml, seeds: [42, 123, 777]}
+  - {id: m2_adaptive, config: configs/memory/dit_s2_adaptive.yaml, seeds: [42, 123, 777]}
+  # If budget allows, add the better endpoint from M0/M1 as a fourth run group.

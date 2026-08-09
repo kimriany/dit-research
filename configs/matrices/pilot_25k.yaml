@@ -1,0 +1,10 @@
+name: tapered_ffn_pilot_25k
+template: false
+phase: pilot
+max_steps: 25000
+runs:
+  - {id: e0, config: configs/baseline/dit_s2.yaml, seeds: [11]}
+  - {id: e1, config: configs/controls/dit_s2_uniform_r5.yaml, seeds: [11]}
+  - {id: e2, config: configs/proposed/dit_s2_taper_a.yaml, seeds: [11]}
+  - {id: e3, config: configs/proposed/dit_s2_taper_b.yaml, seeds: [11]}
+  - {id: e4, config: configs/proposed/dit_s2_taper_c.yaml, seeds: [11]}
