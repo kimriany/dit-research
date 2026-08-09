@@ -46,9 +46,9 @@ def error_stats(
     atol: float = 0.0,
     rtol: float = 0.0,
 ) -> dict[str, float]:
-    difference = (expected.float() - actual.float()).abs()
     expected_float = expected.detach().float().flatten()
     actual_float = actual.detach().float().flatten()
+    difference = (expected_float - actual_float).abs()
     expected_norm = torch.linalg.vector_norm(expected_float)
     actual_norm = torch.linalg.vector_norm(actual_float)
     norm_product = expected_norm * actual_norm
@@ -56,7 +56,7 @@ def error_stats(
         cosine = float(torch.dot(expected_float, actual_float) / norm_product)
     else:
         cosine = 1.0 if float(expected_norm + actual_norm) <= 1e-12 else 0.0
-    tolerance = atol + rtol * expected.detach().float().abs()
+    tolerance = atol + rtol * expected_float.abs()
     return {
         "max_abs": float(difference.max()),
         "mean_abs": float(difference.mean()),
