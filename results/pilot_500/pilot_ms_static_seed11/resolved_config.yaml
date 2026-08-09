@@ -1,0 +1,78 @@
+experiment:
+  name: pilot_ms_static_seed11
+  group: ms_static
+  phase: pilot
+  output_root: outputs
+data:
+  dataset: cifar10
+  root: ./datasets
+  validation_fraction: 0.1
+  split_seed: 20260712
+  fake_size: 0
+  num_workers: 8
+  download: true
+model:
+  image_size: 32
+  in_channels: 3
+  patch_size: 2
+  hidden_size: 384
+  depth: 12
+  num_heads: 6
+  num_classes: 10
+  class_dropout_prob: 0.1
+  mlp_ratio: 3.8541666666666665
+  allocation:
+    kind: uniform
+    strength: 0.0
+    multiple_of: 8
+  memory:
+    kind: hybrid_gdn2
+    gate_mode: static
+    block_indices:
+    - 2
+    - 5
+    - 8
+    - 11
+    scan_pattern: lr,rl,tb,bt
+    gate_rank: 67
+    lambda_hidden_size: 16
+    log_snr_clip: 20.0
+    backend: fla
+diffusion:
+  timesteps: 1000
+  schedule: linear
+  beta_start: 0.0001
+  beta_end: 0.02
+train:
+  batch_size: 16
+  grad_accum_steps: 8
+  max_steps: 500
+  learning_rate: 0.0001
+  weight_decay: 0.0
+  ema_decay: 0.9999
+  precision: bf16
+  gradient_clip: 1.0
+  log_every: 100
+  validation_every: 1000
+  validation_batches: 80
+  checkpoint_every: 5000
+  sample_every: 5000
+sampling:
+  method: ddim
+  steps: 50
+  eta: 0.0
+  cfg_scale: 1.5
+  preview_count: 40
+  clip_denoised: true
+evaluation:
+  fid_samples_pilot: 5000
+  fid_samples_final: 50000
+  fid_reference_split: train
+  fid_mode: clean
+runtime:
+  device: auto
+  compile: false
+  deterministic: false
+  allow_tf32: true
+seeds:
+  base: 11
