@@ -63,3 +63,7 @@ environment-report.json
 
 # Keep directory placeholders and research protocol artifacts tracked.
 !results/.gitkeep
+
+# Local datasets and generated package metadata
+datasets/
+*.egg-info/
