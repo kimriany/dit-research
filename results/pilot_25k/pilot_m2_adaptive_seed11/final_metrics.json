@@ -41,6 +41,11 @@
   "eta_seconds": 0.0,
   "event": "train",
   "experiment": "pilot_m2_adaptive_seed11",
+  "fid": 155.6779176283877,
+  "fid_implementation": "clean-fid",
+  "fid_implementation_version": "0.1.35",
+  "fid_mode": "clean",
+  "fid_reference": "cifar10-train-32",
   "gate_mode": "adaptive",
   "gflops_fma2": 11.906875648,
   "gmacs_per_image": 5.953437824,
@@ -297,6 +302,7 @@
     64,
     64
   ],
+  "sample_count": 5000,
   "samples_seen": 3200000,
   "scan_directions": [
     null,

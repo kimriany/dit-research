@@ -1,0 +1,23 @@
+{
+  "batch_size": 100,
+  "cfg_scale": 1.5,
+  "checkpoint": "outputs/pilot_ms_static_seed11/checkpoints/latest.pt",
+  "checkpoint_sha256": "6c92a24ecedb54bc5cb4f90e08b2f9c1d2a58a6bed4875aed3dfcc397616f41c",
+  "checkpoint_step": 25000,
+  "class_balance_rule": "global_index_mod_num_classes",
+  "config_hash": "1ed50ec3e7a466dcdd7aa4f44d65068c58b349f1bf7f282e2e8f57328df6f514",
+  "eta": 0.0,
+  "memory_intervention": {
+    "blockwise_mean_lambda": false,
+    "lambda_override": null,
+    "log_snr_mode": "normal",
+    "resolved_lambda_overrides": {}
+  },
+  "num_samples": 5000,
+  "precision": "bf16",
+  "precision_warning": null,
+  "sampler": "ddim",
+  "seed": 50011,
+  "steps": 50,
+  "weight_source": "ema"
+}

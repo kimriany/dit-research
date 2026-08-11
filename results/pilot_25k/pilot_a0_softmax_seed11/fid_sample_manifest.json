@@ -1,0 +1,23 @@
+{
+  "batch_size": 100,
+  "cfg_scale": 1.5,
+  "checkpoint": "outputs/pilot_a0_softmax_seed11/checkpoints/latest.pt",
+  "checkpoint_sha256": "266115663675d5527652216e01de023b666da330ec57b35d46c162b96ef65ccf",
+  "checkpoint_step": 25000,
+  "class_balance_rule": "global_index_mod_num_classes",
+  "config_hash": "ca52c473b5b598588b93e04da8d038a3f64e68b23038b711006b7c1fe9bc3954",
+  "eta": 0.0,
+  "memory_intervention": {
+    "blockwise_mean_lambda": false,
+    "lambda_override": null,
+    "log_snr_mode": "normal",
+    "resolved_lambda_overrides": {}
+  },
+  "num_samples": 5000,
+  "precision": "bf16",
+  "precision_warning": null,
+  "sampler": "ddim",
+  "seed": 50011,
+  "steps": 50,
+  "weight_source": "ema"
+}

@@ -1,0 +1,23 @@
+{
+  "batch_size": 100,
+  "cfg_scale": 1.5,
+  "checkpoint": "outputs/pilot_m0_coupled_seed11/checkpoints/latest.pt",
+  "checkpoint_sha256": "00d189653fc5aeea3e7ca96469eb0418b113f31954129bd3c4a7cc3ddbfdc0d7",
+  "checkpoint_step": 25000,
+  "class_balance_rule": "global_index_mod_num_classes",
+  "config_hash": "63b153354f37ef14f4e8db401e804959978138e763a280176a08061f3149d94e",
+  "eta": 0.0,
+  "memory_intervention": {
+    "blockwise_mean_lambda": false,
+    "lambda_override": null,
+    "log_snr_mode": "normal",
+    "resolved_lambda_overrides": {}
+  },
+  "num_samples": 5000,
+  "precision": "bf16",
+  "precision_warning": null,
+  "sampler": "ddim",
+  "seed": 50011,
+  "steps": 50,
+  "weight_source": "ema"
+}
