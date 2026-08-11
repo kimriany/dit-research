@@ -14,6 +14,15 @@ python scripts/environment_report.py
 python -m pytest -q
 ```
 
+Clean-FID 0.1.x는 `scipy.linalg.sqrtm(..., disp=False)`를 사용하므로 `eval`
+extra는 SciPy를 `<1.18`로 제한한다. 이전 lock으로 SciPy 1.18이 이미 설치된
+환경에서는 샘플을 다시 만들지 말고 다음 명령으로 SciPy만 호환 버전으로
+내린 뒤 평가 명령만 재실행한다.
+
+```bash
+python -m pip install "scipy>=1.8,<1.18"
+```
+
 Memory extra는 `torch>=2.7`, `triton>=3.3`, `fla-core[cuda]==0.5.1`을 요구한다. 현재 lock의 Torch 2.13/CUDA 13/Triton 3.7 환경을 그대로 쓸 수 있으면 불필요하게 교체하지 않는다. 설치 결과가 lock과 다르면 lock보다 `environment-report.json`과 각 run manifest가 우선이다.
 
 보고서에서 반드시 확인한다.

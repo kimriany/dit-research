@@ -18,6 +18,9 @@ dependencies = [
 [project.optional-dependencies]
 eval = [
   "clean-fid>=0.1.35,<0.2",
+  # clean-fid 0.1.x still calls scipy.linalg.sqrtm(..., disp=False),
+  # whose disp argument was removed in SciPy 1.18.
+  "scipy>=1.8,<1.18",
   "torch-fidelity>=0.3,<0.5",
 ]
 memory = [
