@@ -1,0 +1,226 @@
+{
+  "config_hash": "63b153354f37ef14f4e8db401e804959978138e763a280176a08061f3149d94e",
+  "created_unix": 1786295719.0951002,
+  "cuda": {
+    "arch_list": [
+      "sm_75",
+      "sm_80",
+      "sm_86",
+      "sm_90",
+      "sm_100",
+      "sm_120"
+    ],
+    "available": true,
+    "bf16_supported": true,
+    "capability": [
+      12,
+      0
+    ],
+    "cudnn": 92000,
+    "device_count": 1,
+    "device_name": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+    "device_uuid": "1a7dd502-46e5-992d-dcde-98f18739854f",
+    "nvidia_smi_gpus": [
+      {
+        "driver_version": "610.43.02",
+        "memory_total_mib": 97887,
+        "name": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+        "uuid": "GPU-1a7dd502-46e5-992d-dcde-98f18739854f"
+      }
+    ],
+    "torch_cuda": "13.0",
+    "total_memory_bytes": 102011043840
+  },
+  "dataset": {
+    "dataset": "cifar10",
+    "preprocessing": "cifar10_train:stateless_hflip_v1,to_tensor,normalize_0.5;val:to_tensor,normalize_0.5",
+    "preprocessing_hash": "82e1215d3fe9871eb1b8811d2cac3b2d3c936f2f55463b6448eb9ba41645fbef",
+    "root": "./datasets",
+    "split_hash": "0174031f6803dab2696cdba0df04ce7ff707617879cf6b69a18369927e82ed48",
+    "train_size": 45000,
+    "validation_size": 5000
+  },
+  "effective_batch_size_single_gpu": 128,
+  "experiment": "pilot_m0_coupled_seed11",
+  "git_commit": "6890ec531793c19acdb5624fa188f62cfde5abe2",
+  "git_diff_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "git_dirty": true,
+  "group": "m0_coupled",
+  "last_resume": {
+    "checkpoint": "outputs/pilot_m0_coupled_seed11/checkpoints/latest.pt",
+    "code_hash_changed": false,
+    "environment_changed": false,
+    "requested_max_steps": 25000,
+    "resumed_from_step": 10000,
+    "runtime_signature": {
+      "device_type": "cuda",
+      "gpu_capability": [
+        12,
+        0
+      ],
+      "gpu_name": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+      "packages": {
+        "Pillow": "12.3.0",
+        "PyYAML": "6.0.3",
+        "fla-core": "0.5.1",
+        "numpy": "2.5.2",
+        "torchvision": "0.28.0",
+        "triton": "3.7.1"
+      },
+      "precision_actual": "bf16",
+      "python": "3.12.3",
+      "torch": "2.13.0+cu130",
+      "torch_cuda": "13.0"
+    },
+    "source_tree_hash": "47d32e7f8ff76e9a78f117c862e9ea879dd4401345613359cb7c1a08c0bb7e73",
+    "training_code_hash": "04a74564c431f729c1af0f386115213c5af09dc3f02f9f17e62f07c8a4de661c",
+    "unix": 1786374995.7765605
+  },
+  "model_complexity": {
+    "allocation": "uniform",
+    "allocation_strength": 0.0,
+    "block_macs": [
+      493191168,
+      493191168,
+      501252128,
+      493191168,
+      493191168,
+      501252128,
+      493191168,
+      493191168,
+      501252128,
+      493191168,
+      493191168,
+      501252128
+    ],
+    "block_types": [
+      "softmax_attention",
+      "softmax_attention",
+      "gdn2_memory",
+      "softmax_attention",
+      "softmax_attention",
+      "gdn2_memory",
+      "softmax_attention",
+      "softmax_attention",
+      "gdn2_memory",
+      "softmax_attention",
+      "softmax_attention",
+      "gdn2_memory"
+    ],
+    "counting_convention": "analytic dense MACs per image; one multiply-accumulate=1 MAC; includes patch/timestep projections, mixer projections, softmax QK+AV or the operator-equivalent GDN2 state recurrence, FFN, adaLN and output projection; excludes bias, normalization, nonlinear activation, trigonometric embedding and additions",
+    "depth": 12,
+    "gate_mode": "coupled",
+    "gflops_fma2": 11.906875648,
+    "gmacs_per_image": 5.953437824,
+    "hidden_size": 384,
+    "image_size": 32,
+    "macs_per_image": 5953437824,
+    "memory_backend": "fla",
+    "memory_block_indices": [
+      2,
+      5,
+      8,
+      11
+    ],
+    "mixer_macs": [
+      201326592,
+      201326592,
+      209387552,
+      201326592,
+      201326592,
+      209387552,
+      201326592,
+      201326592,
+      209387552,
+      201326592,
+      201326592,
+      209387552
+    ],
+    "mlp_hidden_sizes": [
+      1480,
+      1480,
+      1480,
+      1480,
+      1480,
+      1480,
+      1480,
+      1480,
+      1480,
+      1480,
+      1480,
+      1480
+    ],
+    "mlp_hidden_sum": 17760,
+    "num_heads": 6,
+    "parameters_mlp": 13662048,
+    "parameters_total": 32475208,
+    "parameters_trainable": 32475208,
+    "patch_size": 2,
+    "recurrent_state_shape": [
+      6,
+      64,
+      64
+    ],
+    "scan_directions": [
+      null,
+      null,
+      "lr",
+      null,
+      null,
+      "rl",
+      null,
+      null,
+      "tb",
+      null,
+      null,
+      "bt"
+    ],
+    "tokens": 256
+  },
+  "packages": {
+    "Pillow": "12.3.0",
+    "PyYAML": "6.0.3",
+    "fla-core": "0.5.1",
+    "numpy": "2.5.2",
+    "torchvision": "0.28.0",
+    "triton": "3.7.1"
+  },
+  "phase": "pilot",
+  "platform": "Linux-7.0.0-28-generic-x86_64-with-glibc2.39",
+  "precision_actual": "bf16",
+  "precision_requested": "bf16",
+  "precision_warning": null,
+  "python": "3.12.3 (main, Jun 19 2026, 12:46:00) [GCC 13.3.0]",
+  "resume_compatibility_hash": "c1e653c3a6cf2c2c7c92dd89112b4c9aa7dcceb4022ddd598e5928144431154c",
+  "runtime_signature": {
+    "device_type": "cuda",
+    "gpu_capability": [
+      12,
+      0
+    ],
+    "gpu_name": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+    "packages": {
+      "Pillow": "12.3.0",
+      "PyYAML": "6.0.3",
+      "fla-core": "0.5.1",
+      "numpy": "2.5.2",
+      "torchvision": "0.28.0",
+      "triton": "3.7.1"
+    },
+    "precision_actual": "bf16",
+    "python": "3.12.3",
+    "torch": "2.13.0+cu130",
+    "torch_cuda": "13.0"
+  },
+  "seeds": {
+    "data": 10011,
+    "diffusion": 20011,
+    "dropout": 30011,
+    "evaluation": 40011,
+    "init": 11,
+    "sampling": 50011
+  },
+  "source_tree_hash": "47d32e7f8ff76e9a78f117c862e9ea879dd4401345613359cb7c1a08c0bb7e73",
+  "torch": "2.13.0+cu130",
+  "training_code_hash": "04a74564c431f729c1af0f386115213c5af09dc3f02f9f17e62f07c8a4de661c"
+}
