@@ -267,14 +267,32 @@ python scripts/sample.py \
 
 ## 8. Confirmation
 
-Confirmation의 필수 세 모델은 A0/MS/M2다. MS는 좋은 noise-independent 중간 lambda라는 대안을 검증하므로 pilot 순위와 무관하게 유지한다. 예산이 허용되면 M0/M1 중 더 나은 endpoint를 네 번째 run group으로 추가한다. `configs/matrices/memory_confirm_template.yaml`을 확인한 뒤 `template: false`로 바꾼다.
+Confirmation은 A0/M0/MS/M2를 고정한다. MS는 좋은 noise-independent 중간
+lambda라는 대안을 검증하고, M0는 seed-11 pilot에서 더 낮은 FID-5k를 보인
+endpoint다. 실제 실행 파일은
+`configs/matrices/memory_confirmation_50k.yaml`이며 `template: false`, seeds
+42/123/777, 모델별 50k updates로 확정되어 있다.
+
+먼저 아래 dry-run이 A0/M0/MS/M2 각각 세 seed, 총 12개 명령과 공통
+`batch_size=64`, `grad_accum_steps=2`를 출력하는지 확인한다.
 
 ```bash
 python scripts/run_matrix.py \
-  --matrix configs/matrices/memory_confirm_template.yaml
+  --matrix configs/matrices/memory_confirmation_50k.yaml \
+  --batch-size 64 --grad-accum-steps 2
 ```
 
-명령, 필수 세 모델, seeds 42/123/777, 공통 batch를 확인한 뒤에만 `--execute`를 붙인다. Seed 11은 confirmation 평균에 넣지 않는다. M2−MS primary paired delta는 다음처럼 MS를 control로 명시해 집계한다.
+확인 후 tmux 안에서 같은 명령에 `--execute`를 붙인다. 첫 실행은 backend
+preflight를 자동 수행하므로 `--skip-backend-check`를 붙이지 않는다.
+
+```bash
+python scripts/run_matrix.py \
+  --matrix configs/matrices/memory_confirmation_50k.yaml \
+  --batch-size 64 --grad-accum-steps 2 \
+  --execute
+```
+
+Seed 11은 confirmation 평균에 넣지 않는다. M2−MS primary paired delta는 다음처럼 MS를 control로 명시해 집계한다.
 
 ```bash
 python scripts/summarize_results.py outputs/confirmation_*/final_metrics.json \

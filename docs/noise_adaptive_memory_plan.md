@@ -232,12 +232,12 @@ python scripts/run_matrix.py \
 
 lambda가 0 또는 1로 수렴했다는 이유만으로 중단하지 않는다. 이는 유효한 음성 결과다.
 
-Pilot 뒤 confirmation에는 A0, MS, M2를 반드시 보낸다. MS를 빼면 좋은 noise-independent 중간 lambda라는 설명을 독립 seed에서 배제할 수 없다. 예산이 허용되면 M0/M1 중 더 나은 endpoint를 네 번째 모델군으로 추가하며, FID-5k 하나가 아니라 KID interval과 validation curve도 함께 보고 선택한다.
+Pilot 뒤 confirmation에는 A0, MS, M2를 반드시 보낸다. MS를 빼면 좋은 noise-independent 중간 lambda라는 설명을 독립 seed에서 배제할 수 없다. Seed-11 pilot에서는 M0가 M1보다 낮은 FID-5k를 보였고 학습도 안정적이었으므로 endpoint로 M0를 확정해 네 번째 모델군으로 추가한다. 이 선택 자체는 단일-seed pilot 결정이며 confirmation 결과로 간주하지 않는다.
 
 ### Phase 2 — Confirmation
 
 - 필수 모델: A0, MS, M2
-- 선택 모델: pilot에서 더 나은 endpoint M0 또는 M1
+- pilot-selected endpoint: M0
 - seeds: 42, 123, 777
 - seed별 50k updates
 - 같은 effective batch, sampler, CFG, EMA rule
