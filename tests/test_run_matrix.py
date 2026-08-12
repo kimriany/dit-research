@@ -83,6 +83,45 @@ class RunMatrixTests(unittest.TestCase):
             self.assertNotEqual(completed.returncode, 0)
             self.assertIn("duplicate matrix run id", completed.stderr)
 
+    def test_followup_matrix_expands_to_thirteen_train_sample_and_eval_commands(self) -> None:
+        matrix = ROOT / "configs" / "matrices" / "memory_followup_50k.yaml"
+        training = self._run(matrix, "--batch-size", "64", "--grad-accum-steps", "2")
+        self.assertEqual(training.returncode, 0, training.stderr)
+        self.assertEqual(training.stdout.count("scripts/train.py"), 13)
+        self.assertIn("train.batch_size=64", training.stdout)
+
+        sampling = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "sample_matrix.py"),
+                "--matrix",
+                str(matrix),
+                "--num-samples",
+                "50000",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(sampling.returncode, 0, sampling.stderr)
+        self.assertEqual(sampling.stdout.count("scripts/sample.py"), 13)
+
+        evaluation = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "evaluate_distribution_matrix.py"),
+                "--matrix",
+                str(matrix),
+                "--reference",
+                "datasets/cifar10_train_png",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(evaluation.returncode, 0, evaluation.stderr)
+        self.assertEqual(evaluation.stdout.count("scripts/evaluate.py"), 13)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -124,11 +124,25 @@ python scripts/evaluate.py fid \
   --split train \
   --expected-count 5000
 
+# CIFAR-10 실이미지 PNG reference를 한 번 준비
+python scripts/export_cifar10_reference.py \
+  --data-root datasets --output datasets/cifar10_train_png
+
+# 같은 Clean-FID feature로 deterministic KID + Precision/Recall
+python scripts/evaluate.py distribution \
+  --samples outputs/confirmation_m2_adaptive_seed42/fid_samples_50k \
+  --reference datasets/cifar10_train_png \
+  --expected-count 50000 --expected-reference-count 50000 \
+  --output outputs/confirmation_m2_adaptive_seed42/final_metrics.json
+
 # run별 결과를 모델별 평균/표준편차로 집계
 python scripts/summarize_results.py outputs/*/final_metrics.json
 ```
 
 품질 평가는 `sample_manifest.json`, 정확한 PNG 수, 연속 파일명, 32×32 RGB 형식을 먼저 검증합니다. 외부 생성 폴더를 평가할 때만 검토 후 `--allow-unmanifested`를 사용합니다.
+
+현재 3-seed confirmation 이후의 13-run 확장, matrix sampling, KID/Precision/Recall
+일괄 실행 명령은 `docs/server_runbook.md` 9절에 있습니다.
 
 5k FID는 후보 제거용 보조 지표이며 최종 FID-50k와 직접 비교하지 않습니다. 최종 실험은 클래스당 정확히 같은 수의 샘플, 고정 sampler/step/CFG, 분리된 확인 seed를 사용합니다.
 

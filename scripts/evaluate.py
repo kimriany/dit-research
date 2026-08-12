@@ -11,7 +11,11 @@ from _bootstrap import ROOT  # noqa: F401
 from dit_research.config import load_config
 from dit_research.evaluation.benchmark import benchmark_model
 from dit_research.evaluation.complexity import analytic_complexity, assert_exact_match
-from dit_research.evaluation.quality import clean_fid, torch_fidelity_metrics
+from dit_research.evaluation.quality import (
+    clean_fid,
+    distribution_metrics,
+    torch_fidelity_metrics,
+)
 from dit_research.model import build_model
 from dit_research.utils import atomic_json_dump, resolve_device
 
@@ -54,6 +58,30 @@ def parse_args() -> argparse.Namespace:
     )
     fid.add_argument("--cpu", action="store_true")
     fid.add_argument("--output", default=None)
+
+    distribution = subparsers.add_parser(
+        "distribution",
+        help="compute FID, deterministic KID, and improved precision/recall from Clean-FID features",
+    )
+    distribution.add_argument("--samples", required=True)
+    distribution.add_argument("--reference", required=True)
+    distribution.add_argument("--mode", default="clean")
+    distribution.add_argument("--expected-count", type=int, default=None)
+    distribution.add_argument("--expected-reference-count", type=int, default=None)
+    distribution.add_argument("--batch-size", type=int, default=256)
+    distribution.add_argument("--num-workers", type=int, default=8)
+    distribution.add_argument("--kid-num-subsets", type=int, default=100)
+    distribution.add_argument("--kid-subset-size", type=int, default=1000)
+    distribution.add_argument("--kid-seed", type=int, default=0)
+    distribution.add_argument("--pr-sample-count", type=int, default=10000)
+    distribution.add_argument("--pr-nearest-k", type=int, default=3)
+    distribution.add_argument("--pr-seed", type=int, default=0)
+    distribution.add_argument("--distance-chunk-size", type=int, default=1000)
+    distribution.add_argument("--no-feature-cache", action="store_true")
+    distribution.add_argument("--allow-unmanifested", action="store_true")
+    distribution.add_argument("--allow-unmanifested-reference", action="store_true")
+    distribution.add_argument("--cpu", action="store_true")
+    distribution.add_argument("--output", default=None)
     return parser.parse_args()
 
 
@@ -109,6 +137,31 @@ def main() -> None:
             repeats=args.repeats,
         )
         write_or_print(result, args.output)
+        return
+
+    if args.command == "distribution":
+        device = resolve_device("cpu" if args.cpu else "cuda")
+        result = distribution_metrics(
+            args.samples,
+            args.reference,
+            mode=args.mode,
+            require_sample_manifest=not args.allow_unmanifested,
+            require_reference_manifest=not args.allow_unmanifested_reference,
+            expected_sample_count=args.expected_count,
+            expected_reference_count=args.expected_reference_count,
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+            kid_num_subsets=args.kid_num_subsets,
+            kid_subset_size=args.kid_subset_size,
+            kid_seed=args.kid_seed,
+            pr_sample_count=args.pr_sample_count,
+            pr_nearest_k=args.pr_nearest_k,
+            pr_seed=args.pr_seed,
+            distance_chunk_size=args.distance_chunk_size,
+            device=str(device),
+            use_feature_cache=not args.no_feature_cache,
+        )
+        write_or_print(result, args.output, merge=True)
         return
 
     require_manifest = not args.allow_unmanifested

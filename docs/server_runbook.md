@@ -207,9 +207,12 @@ python scripts/sample.py \
 python scripts/evaluate.py fid \
   --samples outputs/pilot_m2_adaptive_seed11/fid_samples_5k \
   --split train --expected-count 5000 \
-  --with-torch-fidelity \
   --output outputs/pilot_m2_adaptive_seed11/final_metrics.json
 ```
+
+`--with-torch-fidelity`는 별도 170MB Inception weight를 받는 legacy 경로다.
+아래 9절의 `distribution` 명령은 이미 FID에 쓰는 Clean-FID 특징 추출기를
+재사용하므로 새 실험에서는 그 경로로 KID와 Precision/Recall을 계산한다.
 
 다섯 모델에 반복한 뒤 다음처럼 fail-fast 집계를 실행한다.
 
@@ -305,3 +308,175 @@ python scripts/summarize_results.py outputs/confirmation_*/final_metrics.json \
 ```
 
 A0 대비 보조 delta가 필요하면 같은 입력을 `--control-group e0_original`과 별도 output 경로로 한 번 더 집계한다.
+
+## 9. 현재 3-seed 결과 이후의 후속 실험
+
+원래 3-seed confirmation에서 M2가 MS보다 좋아지지 않았으므로 explicit
+log-SNR adaptivity의 품질 우위는 현재 지지되지 않는다. 후속은 두 일을
+분리해 수행한다.
+
+1. 이미 생성한 12개 50k sample의 FID를 같은 feature pass에서 재검산하고
+   KID와 생성 Precision/Recall을 추가한다.
+2. M1을 누락된 다섯 seed에 넣고, A0/M0/MS/M2에는 새 paired seed 두 개를
+   더해 각 모델을 총 다섯 seed로 맞춘다.
+
+이 후속은 첫 3-seed 결과를 본 뒤 정한 post-confirmation extension이므로
+원래 confirmation과 구분해 보고한다. 다만 run의 `phase`는 기존 JSON과
+같이 묶어 paired 집계할 수 있도록 `confirmation`을 유지한다.
+
+### 9.1 CIFAR-10 실이미지 reference 준비
+
+이미 학습에 사용한 torchvision CIFAR-10 train archive를 50,000개 PNG로
+한 번만 내보낸다. 데이터가 이미 있으면 네트워크 다운로드는 발생하지
+않는다. archive가 없을 때만 명시적으로 `--download`를 추가한다.
+
+```bash
+python scripts/export_cifar10_reference.py \
+  --data-root datasets \
+  --output datasets/cifar10_train_png
+```
+
+중단되면 같은 명령으로 연속된 PNG 다음부터 재개한다. 완성된 폴더에는
+`reference_manifest.json`이 생긴다.
+
+### 9.2 기존 12개 confirmation의 FID/KID/Precision/Recall
+
+먼저 12개 명령과 실제 sample subdirectory가 맞는지 출력만 확인한다.
+
+```bash
+python scripts/evaluate_distribution_matrix.py \
+  --matrix configs/matrices/memory_confirmation_50k.yaml \
+  --reference datasets/cifar10_train_png \
+  --sample-subdir fid_samples_50k
+```
+
+맞으면 tmux 안에서 실행한다.
+
+```bash
+python scripts/evaluate_distribution_matrix.py \
+  --matrix configs/matrices/memory_confirmation_50k.yaml \
+  --reference datasets/cifar10_train_png \
+  --sample-subdir fid_samples_50k \
+  --skip-complete \
+  --execute
+```
+
+고정 설정은 다음과 같다.
+
+- KID: seed 0, 100 subsets, subset당 최대 1,000개
+- Precision/Recall: 동일 Clean-FID Inception feature의 seed-0 deterministic
+  10,000개 subset, `k=3`
+- distance chunk: 1,000
+- real/fake feature cache: 각 이미지 폴더의 숨김 `.bin/.json`
+
+50k × 2048 float32 feature cache는 폴더당 약 391MiB다. 캐시는 결과가 아니라
+재계산 가속 파일이므로 공간이 필요하면 지워도 된다. 첫 run 이후 real
+feature는 공유되고, 중단 후 `--skip-complete`로 재실행하면 완료된 run은
+건너뛴다.
+
+여기서 Precision/Recall은 Kynkäänniemi et al.의 k-NN manifold 알고리즘을
+Clean-FID Inception feature에 적용한 repository variant다. 원 논문의 feature
+network와 표본 수까지 그대로 복제한 reference implementation이라고 부르지
+않고, 결과 JSON의 `precision_recall_definition`과 sample count를 함께 보고한다.
+
+### 9.3 13-run post-confirmation training extension
+
+매트릭스는 다음으로 구성된다.
+
+- A0/M0/MS/M2: 새 seeds 2026, 9001 각 2개
+- M1: 기존 42/123/777과 새 2026/9001, 총 5개
+- 합계: 13 runs × 50k updates
+
+먼저 13개 명령, batch 64, accumulation 2를 확인한다.
+
+```bash
+python scripts/run_matrix.py \
+  --matrix configs/matrices/memory_followup_50k.yaml \
+  --batch-size 64 --grad-accum-steps 2
+```
+
+모두 새 run이므로 `--resume-existing`을 붙이지 않고 tmux에서 실행한다.
+
+```bash
+python scripts/run_matrix.py \
+  --matrix configs/matrices/memory_followup_50k.yaml \
+  --batch-size 64 --grad-accum-steps 2 \
+  --execute
+```
+
+### 9.4 후속 13개 run의 sampling과 분포 지표
+
+학습이 끝나면 먼저 sampling 명령 13개를 확인한 뒤 실행한다.
+
+```bash
+python scripts/sample_matrix.py \
+  --matrix configs/matrices/memory_followup_50k.yaml \
+  --num-samples 50000 --batch-size 500
+
+python scripts/sample_matrix.py \
+  --matrix configs/matrices/memory_followup_50k.yaml \
+  --num-samples 50000 --batch-size 500 \
+  --skip-complete --execute
+```
+
+그 다음 같은 13개에 FID/KID/Precision/Recall을 계산한다.
+
+```bash
+python scripts/evaluate_distribution_matrix.py \
+  --matrix configs/matrices/memory_followup_50k.yaml \
+  --reference datasets/cifar10_train_png \
+  --sample-subdir fid_samples_50k \
+  --skip-complete --execute
+```
+
+최종 5-seed 표의 해석 순서는 `M2-MS`(adaptivity), `M1-M0`(고정
+erase/write separation), `M2-M1`(adaptive intermediate 대 완전 분리),
+각 모델 대 A0 순이다. KID는 낮을수록, Precision과 Recall은 높을수록 좋다.
+단, Precision/Recall은 quality와 coverage를 각각 보는 보조 지표이며 FID를
+대체하지 않는다.
+
+### 9.5 5-seed 집계
+
+기존 12개와 후속 13개가 모두 `outputs/confirmation_*` 아래에 있고 각
+`final_metrics.json`에 FID/KID/Precision/Recall이 들어간 뒤 집계한다.
+
+```bash
+# adaptivity: M2 - MS
+python scripts/summarize_results.py outputs/confirmation_*/final_metrics.json \
+  --phase confirmation --step 50000 \
+  --expected-seeds 42,123,777,2026,9001 \
+  --expected-sample-count 50000 \
+  --control-group ms_static \
+  --output results/followup_5seed_vs_ms.csv \
+  --raw-output results/followup_5seed_runs_vs_ms.csv
+
+# fixed separation: M1 - M0
+python scripts/summarize_results.py outputs/confirmation_*/final_metrics.json \
+  --phase confirmation --step 50000 \
+  --expected-seeds 42,123,777,2026,9001 \
+  --expected-sample-count 50000 \
+  --control-group m0_coupled \
+  --output results/followup_5seed_vs_m0.csv \
+  --raw-output results/followup_5seed_runs_vs_m0.csv
+
+# adaptive intermediate vs full separation: M2 - M1
+python scripts/summarize_results.py outputs/confirmation_*/final_metrics.json \
+  --phase confirmation --step 50000 \
+  --expected-seeds 42,123,777,2026,9001 \
+  --expected-sample-count 50000 \
+  --control-group m1_separated \
+  --output results/followup_5seed_vs_m1.csv \
+  --raw-output results/followup_5seed_runs_vs_m1.csv
+
+# softmax anchor
+python scripts/summarize_results.py outputs/confirmation_*/final_metrics.json \
+  --phase confirmation --step 50000 \
+  --expected-seeds 42,123,777,2026,9001 \
+  --expected-sample-count 50000 \
+  --control-group e0_original \
+  --output results/followup_5seed_vs_a0.csv \
+  --raw-output results/followup_5seed_runs_vs_a0.csv
+```
+
+각 control에 없는 seed나 중복된 `(phase, step, group, seed)`, FID/sample count
+누락이 하나라도 있으면 집계기는 결과 파일을 만들기 전에 실패한다.

@@ -1,0 +1,13 @@
+name: noise_adaptive_memory_post_confirmation_extension_50k
+template: false
+phase: confirmation
+max_steps: 50000
+runs:
+  # Two new paired seeds expand the four existing groups from n=3 to n=5.
+  - {id: a0_softmax, config: configs/baseline/dit_s2.yaml, seeds: [2026, 9001]}
+  - {id: m0_coupled, config: configs/memory/dit_s2_coupled.yaml, seeds: [2026, 9001]}
+  # M1 was omitted from the original confirmation. Train it on all five seeds
+  # so M1-M0 directly tests fixed erase/write separation.
+  - {id: m1_separated, config: configs/memory/dit_s2_separated.yaml, seeds: [42, 123, 777, 2026, 9001]}
+  - {id: ms_static, config: configs/memory/dit_s2_static.yaml, seeds: [2026, 9001]}
+  - {id: m2_adaptive, config: configs/memory/dit_s2_adaptive.yaml, seeds: [2026, 9001]}

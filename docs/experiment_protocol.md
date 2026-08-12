@@ -99,8 +99,23 @@ confirmation:
 - 마지막-budget EMA checkpoint
 - 샘플 폴더는 실행 전에 비어 있어야 하며 정확한 PNG 수와 manifest hash 확인
 
+distribution metric implementation:
+
+- FID와 feature extractor: Clean-FID `clean` mode, CIFAR-10 train reference
+- KID: 같은 Clean-FID feature, seed 0, 100 × 최대 1,000개 subset의 unbiased polynomial MMD
+- Kynkäänniemi-style improved Precision/Recall: 원 논문의 k-NN manifold
+  알고리즘을 같은 Clean-FID Inception feature에 적용한 repository variant;
+  deterministic 10,000개 subset, seed 0, `k=3`을 결과에 명시
+- real reference는 torchvision CIFAR-10 train 50k를 원본 32×32 RGB PNG로
+  export하고 manifest/count/name/format을 검증
+- torch-fidelity legacy 경로의 별도 Inception weight와 결과를 새 표에 섞지 않음
+
 평가 결과에는 구현명/버전, real split, sample count, resize mode를 반드시 저장한다. FID-5k와 FID-50k는 직접 비교하지 않는다.
 평가기는 기본적으로 generation manifest와 정확한 파일 수·파일명·32×32 RGB PNG 형식을 검증하며, 중단된 sample directory와 preview grid를 거부한다.
+
+원래 3-seed 결과를 본 뒤 추가한 seed/M1 실험은 post-confirmation extension으로
+표기한다. 기존 3개와 새 2개 seed를 합친 5-seed 표는 exploratory extension이며,
+원래부터 predeclared된 5-seed confirmation으로 표현하지 않는다.
 
 ## 결과 단위
 

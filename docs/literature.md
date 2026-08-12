@@ -90,10 +90,11 @@ CIFAR-10 256-token 결과에서는 long-sequence efficiency를 일반화하지 �
 - [FID 원 논문](https://proceedings.neurips.cc/paper/2017/hash/8a1d694707eb0fefe65871369074926d-Abstract.html)
 - [FID/IS finite-sample bias](https://openaccess.thecvf.com/content_CVPR_2020/html/Chong_Effectively_Unbiased_FID_and_Inception_Score_and_Where_to_Find_CVPR_2020_paper.html)
 - [KID](https://openreview.net/pdf?id=r1lUOzWCW)
+- [Improved Precision and Recall](https://proceedings.neurips.cc/paper/2019/hash/0234c510bc6d908b28c70ff313743079-Abstract.html)
 - [Clean-FID / resizing subtleties](https://openaccess.thecvf.com/content/CVPR2022/html/Parmar_On_Aliased_Resizing_and_Surprising_Subtleties_in_GAN_Evaluation_CVPR_2022_paper.html)
 - [Clean-FID 공식 코드](https://github.com/GaParmar/clean-fid)
 
-5k FID는 screening용이며 FID-50k와 직접 비교하지 않는다. Confirmation은 paired seeds와 KID uncertainty를 함께 보고한다.
+5k FID는 screening용이며 FID-50k와 직접 비교하지 않는다. Confirmation은 paired seeds와 KID uncertainty를 함께 보고한다. Repository의 Precision/Recall은 k-NN manifold 알고리즘은 따르되 Clean-FID Inception feature와 deterministic 10k subset을 쓰는 명시적 variant다.
 
 ## 7. 이전 scaffold
 
