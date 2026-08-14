@@ -1,0 +1,9 @@
+name: erase_write_separation_replication_50k
+template: false
+phase: replication
+max_steps: 50000
+runs:
+  # This held-out replication cohort was fixed after the exploratory five-seed
+  # M1-M0 result and before any of these runs were trained.
+  - {id: m0_coupled, config: configs/memory/dit_s2_coupled.yaml, seeds: [1001, 1002, 1003, 1004, 1005]}
+  - {id: m1_separated, config: configs/memory/dit_s2_separated.yaml, seeds: [1001, 1002, 1003, 1004, 1005]}

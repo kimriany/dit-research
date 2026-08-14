@@ -49,6 +49,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--raw-output", default=str(ROOT / "results" / "runs.csv"))
     parser.add_argument("--control-group", default="e0_original")
     parser.add_argument("--phase", default=None, help="include only this experiment phase")
+    parser.add_argument(
+        "--pool-phases-as",
+        default=None,
+        help=(
+            "replace the phase of all selected rows with this label after filtering; "
+            "use only for an explicitly reported pooled estimate"
+        ),
+    )
     parser.add_argument("--step", type=int, default=None, help="include only this update budget")
     parser.add_argument(
         "--expected-sample-count",
@@ -104,6 +112,13 @@ def main() -> None:
         rows = [row for row in rows if row.get("step") == args.step]
     if not rows:
         raise ValueError("result filters selected no runs")
+    if args.pool_phases_as is not None:
+        pooled_phase = args.pool_phases_as.strip()
+        if not pooled_phase:
+            raise ValueError("pool-phases-as must be a non-empty label")
+        for row in rows:
+            row["source_phase"] = row.get("phase")
+            row["phase"] = pooled_phase
     if not args.allow_validation_failures:
         failed = [
             row.get("source", row.get("experiment"))

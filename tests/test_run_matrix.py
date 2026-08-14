@@ -122,6 +122,46 @@ class RunMatrixTests(unittest.TestCase):
         self.assertEqual(evaluation.returncode, 0, evaluation.stderr)
         self.assertEqual(evaluation.stdout.count("scripts/evaluate.py"), 13)
 
+    def test_separation_replication_expands_to_ten_train_sample_and_eval_commands(self) -> None:
+        matrix = ROOT / "configs" / "matrices" / "memory_separation_replication_50k.yaml"
+        training = self._run(matrix, "--batch-size", "64", "--grad-accum-steps", "2")
+        self.assertEqual(training.returncode, 0, training.stderr)
+        self.assertEqual(training.stdout.count("scripts/train.py"), 10)
+        self.assertEqual(training.stdout.count("dit_s2_coupled.yaml"), 5)
+        self.assertEqual(training.stdout.count("dit_s2_separated.yaml"), 5)
+
+        sampling = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "sample_matrix.py"),
+                "--matrix",
+                str(matrix),
+                "--num-samples",
+                "50000",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(sampling.returncode, 0, sampling.stderr)
+        self.assertEqual(sampling.stdout.count("scripts/sample.py"), 10)
+
+        evaluation = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "evaluate_distribution_matrix.py"),
+                "--matrix",
+                str(matrix),
+                "--reference",
+                "datasets/cifar10_train_png",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(evaluation.returncode, 0, evaluation.stderr)
+        self.assertEqual(evaluation.stdout.count("scripts/evaluate.py"), 10)
+
 
 if __name__ == "__main__":
     unittest.main()

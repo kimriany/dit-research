@@ -480,3 +480,83 @@ python scripts/summarize_results.py outputs/confirmation_*/final_metrics.json \
 
 각 control에 없는 seed나 중복된 `(phase, step, group, seed)`, FID/sample count
 누락이 하나라도 있으면 집계기는 결과 파일을 만들기 전에 실패한다.
+
+## 10. M0/M1 held-out separation replication
+
+5-seed exploratory 결과에서 M1이 M0보다 평균 FID `2.107` 낮고
+4/5 seeds에서 우세했다. 이 결과를 본 후 설계한 복제 실험이며,
+새 seeds `1001–1005`는 실행 전에 고정했다. M2/MS/A0는 다시
+학습하지 않는다.
+
+### 10.1 학습
+
+먼저 M0 5개와 M1 5개, 총 10개 명령을 확인한다.
+
+```bash
+python scripts/run_matrix.py \
+  --matrix configs/matrices/memory_separation_replication_50k.yaml \
+  --batch-size 64 --grad-accum-steps 2
+```
+
+tmux 안에서 실행한다.
+
+```bash
+python scripts/run_matrix.py \
+  --matrix configs/matrices/memory_separation_replication_50k.yaml \
+  --batch-size 64 --grad-accum-steps 2 \
+  --execute
+```
+
+### 10.2 50k sampling과 분포 지표
+
+```bash
+python scripts/sample_matrix.py \
+  --matrix configs/matrices/memory_separation_replication_50k.yaml \
+  --num-samples 50000 --batch-size 500 \
+  --skip-complete --execute
+
+python scripts/evaluate_distribution_matrix.py \
+  --matrix configs/matrices/memory_separation_replication_50k.yaml \
+  --reference datasets/cifar10_train_png \
+  --sample-subdir fid_samples_50k \
+  --skip-complete --execute
+```
+
+### 10.3 새 replication cohort 집계
+
+기존 seed를 섞지 않고 새 5개만 먼저 판정한다. Bash brace
+expansion으로 각 그룹의 새 파일 5개만 선택한다.
+
+```bash
+python scripts/summarize_results.py \
+  outputs/replication_m0_coupled_seed{1001,1002,1003,1004,1005}/final_metrics.json \
+  outputs/replication_m1_separated_seed{1001,1002,1003,1004,1005}/final_metrics.json \
+  --phase replication --step 50000 \
+  --expected-seeds 1001,1002,1003,1004,1005 \
+  --expected-sample-count 50000 \
+  --control-group m0_coupled \
+  --output results/separation_replication_5seed_vs_m0.csv \
+  --raw-output results/separation_replication_5seed_runs_vs_m0.csv
+```
+
+### 10.4 pooled 10-seed 집계
+
+Replication 판정을 먼저 고정한 뒤 기존 5개와 합친 effect
+estimate를 만든다.
+
+```bash
+python scripts/summarize_results.py \
+  outputs/confirmation_m0_coupled_seed{42,123,777,2026,9001}/final_metrics.json \
+  outputs/confirmation_m1_separated_seed{42,123,777,2026,9001}/final_metrics.json \
+  outputs/replication_m0_coupled_seed{1001,1002,1003,1004,1005}/final_metrics.json \
+  outputs/replication_m1_separated_seed{1001,1002,1003,1004,1005}/final_metrics.json \
+  --step 50000 --pool-phases-as pooled \
+  --expected-seeds 42,123,777,1001,1002,1003,1004,1005,2026,9001 \
+  --expected-sample-count 50000 \
+  --control-group m0_coupled \
+  --output results/separation_pooled_10seed_vs_m0.csv \
+  --raw-output results/separation_pooled_10seed_runs_vs_m0.csv
+```
+
+복제 성공 기준과 중단 규칙은 `docs/noise_adaptive_memory_plan.md`
+13절을 따른다. 이 실험으로 M2 adaptivity를 다시 주장하지 않는다.

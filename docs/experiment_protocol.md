@@ -117,6 +117,12 @@ distribution metric implementation:
 표기한다. 기존 3개와 새 2개 seed를 합친 5-seed 표는 exploratory extension이며,
 원래부터 predeclared된 5-seed confirmation으로 표현하지 않는다.
 
+이 5-seed 표에서 발견한 `M1-M0` 양의 신호는 새 seeds
+`1001–1005`로 별도 복제한다. 새 5-seed cohort를 primary로 먼저
+판정하고, 기존 5개와 합친 10-seed 결과는 pooled effect estimate로만
+보고한다. 새 cohort를 포함한 전체를 사전 10-seed confirmation으로
+표현하지 않는다.
+
 ## 결과 단위
 
 통계적 반복 단위는 생성 이미지가 아니라 독립 학습 seed다. 모델별 mean ± sample SD와 함께 같은 seed의 `M2 - MS`를 primary paired delta로 남기고, A0/M0/M1에 대한 delta도 보조 원자료로 남긴다. 3 seeds의 t-interval은 자유도 2로 매우 넓으므로 참고값일 뿐이다.

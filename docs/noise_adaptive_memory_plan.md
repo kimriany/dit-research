@@ -312,3 +312,34 @@ M2의 같은 checkpoint, sampling seed, class sequence, sampler 설정에서 다
 - CIFAR-10 결과만으로 long-context efficiency 주장
 
 후속 확장은 patch size 1의 1,024-token CIFAR-10, Tiny ImageNet 64×64, within-block multi-direction fusion 순서로 한다.
+
+## 13. 5-seed 결과 이후 separation 복제 실험
+
+2026-08-14에 완료한 exploratory 5-seed 확장의 평균 FID-50k는
+MS `62.318`, M2 `62.497`, M1 `65.134`, M0 `67.241`, A0 `67.877`이었다.
+Primary adaptivity 비교인 `M2-MS` paired mean은 `+0.179`로 사전 5%
+개선 기준을 충족하지 못했다. M2 lambda는 log-SNR에 따라
+비상수 패턴을 학습했지만, 품질 이득은 확인되지 않았다.
+
+단, `M1-M0` paired FID는 평균 `-2.107`이고 5개 중 4개 seed에서
+M1이 우세했다. 이 결과를 본 뒤 선택한 후속이므로, 기존 5개와
+새 5개를 모두 사전 confirmation으로 표현하지 않는다.
+
+### Held-out replication cohort
+
+- 비교: M0 coupled vs M1 fully separated only
+- 새 seeds: `1001, 1002, 1003, 1004, 1005`
+- 각 seed당 50k updates, balanced FID-50k samples 50,000개
+- primary: 새 5 seeds의 paired `M1-M0` FID
+- secondary: KID, Precision/Recall, 기존 5 seeds와 합친 pooled 10-seed effect
+
+복제 지지는 새 cohort에서 mean delta-FID `< 0`, FID 승리 `>=4/5`,
+mean delta-KID `< 0`을 모두 요구한다. 또한 pooled 10 seeds에서 mean
+delta-FID `< 0`과 승리 `>=7/10`을 요구한다. 이를 충족해도
+paired 95% CI가 0을 포함하면 `consistent directional replication`으로
+표현하고, CI의 upper bound가 0 미만일 때만 통계적으로 분리된
+개선으로 표현한다.
+
+새 cohort가 복제되지 않으면 M1 양의 결과는 exploratory signal로
+남기고 추가 seed나 아키텍처를 더 붙이지 않는다. 이 cohort 완료 후
+본 CIFAR-10 초록을 위한 모델 학습은 중단한다.

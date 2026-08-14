@@ -1,10 +1,10 @@
 # DiT Research Lab
 
-A0에 near parameter-matched된 hybrid DiT에서 recurrent spatial memory와 noise-adaptive erase/write decoupling을 검증하는 연구 저장소입니다. Memory 비교군끼리는 파라미터와 analytic MAC를 exact-match합니다.
+A0에 near parameter-matched된 hybrid DiT에서 recurrent spatial memory와 erase/write decoupling을 검증하는 연구 저장소입니다. Memory 비교군끼리는 파라미터와 analytic MAC를 exact-match합니다.
 
-현재 가설은 **Noise-Adaptive Gate Decoupling**입니다. 12개 DiT block 중 3·6·9·12번째 mixer를 4방향 GDN2식 spatial memory로 바꾸고, 별도의 diffusion log-SNR 경로로 erase/write 분리 정도를 학습합니다. 모든 비교군은 공통 adaLN timestep conditioning을 유지합니다.
+5-seed 확장에서 noise-adaptive M2는 static MS보다 낮은 FID를 달성하지 못했습니다(`M2-MS=+0.179`, lower is better). 현재 후속 질문은 **coupled M0보다 fully separated M1이 일관되게 나은가**입니다. 기존 5-seed에서 M1은 M0보다 평균 FID가 2.107 낮고 4/5 seed에서 우세했으며, 이 사후 발견을 새 held-out seeds `1001–1005`로 복제합니다.
 
-> GDN2 연산 자체의 최초성을 주장하지 않습니다. 핵심 질문은 image diffusion에서 noise-dependent memory editing이 fixed coupled/separated gate보다 유효한가입니다.
+> GDN2 연산 자체의 최초성을 주장하지 않습니다. Noise-adaptive 설계의 null 결과와 fixed erase/write separation의 복제 결과를 구분해 보고합니다.
 
 ## 현재 비교 모델
 
@@ -142,7 +142,8 @@ python scripts/summarize_results.py outputs/*/final_metrics.json
 품질 평가는 `sample_manifest.json`, 정확한 PNG 수, 연속 파일명, 32×32 RGB 형식을 먼저 검증합니다. 외부 생성 폴더를 평가할 때만 검토 후 `--allow-unmanifested`를 사용합니다.
 
 현재 3-seed confirmation 이후의 13-run 확장, matrix sampling, KID/Precision/Recall
-일괄 실행 명령은 `docs/server_runbook.md` 9절에 있습니다.
+일괄 실행 명령은 `docs/server_runbook.md` 9절에 있습니다. M0/M1
+held-out 5-seed 복제 실험은 10절을 따릅니다.
 
 5k FID는 후보 제거용 보조 지표이며 최종 FID-50k와 직접 비교하지 않습니다. 최종 실험은 클래스당 정확히 같은 수의 샘플, 고정 sampler/step/CFG, 분리된 확인 seed를 사용합니다.
 
