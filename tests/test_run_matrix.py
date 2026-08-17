@@ -162,6 +162,71 @@ class RunMatrixTests(unittest.TestCase):
         self.assertEqual(evaluation.returncode, 0, evaluation.stderr)
         self.assertEqual(evaluation.stdout.count("scripts/evaluate.py"), 10)
 
+    def test_ffn_b_matrices_expand_to_calibration_and_fifteen_confirmation_runs(self) -> None:
+        calibration = ROOT / "configs" / "matrices" / "ffn_b_calibration_100k.yaml"
+        training = self._run(
+            calibration,
+            "--max-steps",
+            "500",
+            "--batch-size",
+            "64",
+            "--grad-accum-steps",
+            "2",
+        )
+        self.assertEqual(training.returncode, 0, training.stderr)
+        self.assertEqual(training.stdout.count("scripts/train.py"), 1)
+        self.assertIn("ffn_calibration_e1_uniform_b_seed11", training.stdout)
+        self.assertIn(
+            "hidden_size: 768",
+            (ROOT / "configs" / "ffn" / "dit_b_uniform_r5.yaml").read_text(),
+        )
+
+        confirmation = (
+            ROOT / "configs" / "matrices" / "ffn_b_confirmation_template.yaml"
+        )
+        training = self._run(confirmation)
+        self.assertEqual(training.returncode, 0, training.stderr)
+        self.assertEqual(training.stdout.count("scripts/train.py"), 15)
+        self.assertEqual(training.stdout.count("dit_b_uniform_r5.yaml"), 5)
+        self.assertEqual(training.stdout.count("dit_b_front_b.yaml"), 5)
+        self.assertEqual(training.stdout.count("dit_b_reverse_b.yaml"), 5)
+
+        sampling = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "sample_matrix.py"),
+                "--matrix",
+                str(confirmation),
+                "--num-samples",
+                "50000",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(sampling.returncode, 0, sampling.stderr)
+        self.assertEqual(sampling.stdout.count("scripts/sample.py"), 15)
+
+        evaluation = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "evaluate_distribution_matrix.py"),
+                "--matrix",
+                str(confirmation),
+                "--reference",
+                "datasets/cifar10_train_png",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(evaluation.returncode, 0, evaluation.stderr)
+        self.assertEqual(evaluation.stdout.count("scripts/evaluate.py"), 15)
+
+        blocked = self._run(confirmation, "--execute")
+        self.assertNotEqual(blocked.returncode, 0)
+        self.assertIn("refusing to execute a template matrix", blocked.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

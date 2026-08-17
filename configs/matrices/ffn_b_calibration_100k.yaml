@@ -1,0 +1,8 @@
+name: tapered_ffn_b_training_horizon_calibration
+template: false
+phase: ffn_calibration
+max_steps: 100000
+runs:
+  # Run to 50k first with --max-steps 50000, archive FID-5k, then resume to 100k.
+  # Seed 11 is calibration-only and must not enter the five-seed confirmation mean.
+  - {id: e1_uniform_b, config: configs/ffn/dit_b_uniform_r5.yaml, seeds: [11]}

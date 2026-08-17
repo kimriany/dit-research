@@ -39,6 +39,15 @@ class ModelTests(unittest.TestCase):
             )
             self.assertEqual(sum(widths), 12 * 1920)
 
+    def test_documented_b_stage_schedules(self) -> None:
+        uniform = resolve_ffn_widths(768, 12, 5.0, "uniform", 0.0, 8)
+        front = resolve_ffn_widths(768, 12, 5.0, "frontloaded", 1.0, 8)
+        reverse = resolve_ffn_widths(768, 12, 5.0, "backloaded", 1.0, 8)
+        self.assertEqual(uniform, (3840,) * 12)
+        self.assertEqual(front, (4608,) * 4 + (3840,) * 4 + (3072,) * 4)
+        self.assertEqual(reverse, tuple(reversed(front)))
+        self.assertEqual({sum(uniform), sum(front), sum(reverse)}, {46080})
+
     def test_forward_shape_zero_init_and_backward_are_finite(self) -> None:
         config = small_model_config()
         model = build_model(config)

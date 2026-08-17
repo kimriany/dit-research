@@ -29,7 +29,7 @@
 | evaluation | +40,000 | 고정 validation timestep/noise |
 | sampling | +50,000 | preview/final noise bank |
 
-같은 paired seed의 A0/M0/M1/MS/M2는 구조 내부 RNG 사용량과 무관하게 같은 학습 입력 stream을 받는다. resolved seed를 `manifest.json`에 저장한다. 단일 GPU resume은 actual consumed microbatch count에서 epoch/order를 재구성하고 `(seed, epoch, sample index)` 기반 stateless horizontal flip을 사용한다. CPU smoke에서는 연속 실행과 model/optimizer/EMA bitwise equality를 검사한다. CUDA 연산까지의 bitwise equality는 deterministic kernel 지원에 달려 있으므로 입력·RNG stream 복원을 보장 범위로 삼는다.
+같은 paired seed의 비교 모델은 구조 내부 RNG 사용량과 무관하게 같은 학습 입력 stream을 받는다. 이는 memory의 A0/M0/M1/MS/M2와 FFN의 E1/E3/A1에 모두 적용한다. resolved seed를 `manifest.json`에 저장한다. 단일 GPU resume은 actual consumed microbatch count에서 epoch/order를 재구성하고 `(seed, epoch, sample index)` 기반 stateless horizontal flip을 사용한다. CPU smoke에서는 연속 실행과 model/optimizer/EMA bitwise equality를 검사한다. CUDA 연산까지의 bitwise equality는 deterministic kernel 지원에 달려 있으므로 입력·RNG stream 복원을 보장 범위로 삼는다.
 
 fp16 loss-scale overflow가 발생하면 해당 microbatch와 diffusion/dropout generator 상태를 되감아 낮아진 scale로 같은 입력을 다시 처리한다. `skipped_updates`와 추가 wall time은 기록하며, 모델별 `images_seen`은 동일하게 유지한다.
 
@@ -123,9 +123,18 @@ distribution metric implementation:
 보고한다. 새 cohort를 포함한 전체를 사전 10-seed confirmation으로
 표현하지 않는다.
 
+## FFN confirmation 추가 규칙
+
+- seed 11의 E1 training-horizon calibration은 confirmation 평균에 포함하지 않는다.
+- 50k와 100k의 FID-5k는 같은 sample count끼리 학습 진행만 판단한다.
+- calibration에서 E3/A1 결과를 보지 않고 100k 또는 200k budget을 고정한다.
+- FFN confirmation의 primary paired delta는 `E3 - E1`, 방향성 delta는 `E3 - A1`이다.
+- E3와 A1이 모두 E1보다 좋으면 front-loaded가 아니라 non-uniform allocation 신호다.
+- E1/E3/A1의 microbatch, accumulation, updates, images seen, sampler와 CFG를 같게 한다.
+
 ## 결과 단위
 
-통계적 반복 단위는 생성 이미지가 아니라 독립 학습 seed다. 모델별 mean ± sample SD와 함께 같은 seed의 `M2 - MS`를 primary paired delta로 남기고, A0/M0/M1에 대한 delta도 보조 원자료로 남긴다. 3 seeds의 t-interval은 자유도 2로 매우 넓으므로 참고값일 뿐이다.
+통계적 반복 단위는 생성 이미지가 아니라 독립 학습 seed다. Memory 연구는 같은 seed의 `M2 - MS`, FFN 연구는 `E3 - E1`을 각각 primary paired delta로 남긴다. FFN의 `E3 - A1`도 방향성 원자료로 보존한다. 이미지 bootstrap은 독립 학습 반복 수를 늘리지 않으므로 학습 seed 기준 mean, sample SD, paired delta와 CI를 보고한다.
 
 run directory:
 

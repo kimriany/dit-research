@@ -52,6 +52,7 @@ class ResultSummaryTests(unittest.TestCase):
                     "group": group,
                     "seed": seed,
                     "fid": fid,
+                    "validation_loss_tq4": fid / 1000,
                     "sample_count": 50000,
                 }
                 for phase, seed, control_fid, treatment_fid in (
@@ -99,6 +100,20 @@ class ResultSummaryTests(unittest.TestCase):
                 summary = list(csv.DictReader(handle))
             self.assertEqual({row["phase"] for row in summary}, {"pooled"})
             self.assertEqual({row["run_count"] for row in summary}, {"2"})
+            treatment = next(row for row in summary if row["group"] == "m1_separated")
+            self.assertAlmostEqual(float(treatment["delta_fid_vs_control_mean"]), -2.5)
+            self.assertLess(
+                float(treatment["delta_fid_vs_control_ci95_low"]),
+                float(treatment["delta_fid_vs_control_mean"]),
+            )
+            self.assertGreater(
+                float(treatment["delta_fid_vs_control_ci95_high"]),
+                float(treatment["delta_fid_vs_control_mean"]),
+            )
+            self.assertAlmostEqual(
+                float(treatment["delta_validation_loss_tq4_vs_control_mean"]),
+                -0.0025,
+            )
             with raw_path.open(newline="", encoding="utf-8") as handle:
                 raw = list(csv.DictReader(handle))
             self.assertEqual(

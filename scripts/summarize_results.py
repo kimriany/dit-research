@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 import statistics
 from collections import defaultdict
 from pathlib import Path
@@ -15,6 +16,10 @@ from _bootstrap import ROOT
 METRICS = (
     "train_loss",
     "validation_loss",
+    "validation_loss_tq1",
+    "validation_loss_tq2",
+    "validation_loss_tq3",
+    "validation_loss_tq4",
     "fid",
     "kid",
     "precision",
@@ -31,6 +36,10 @@ METRICS = (
 PAIRED_METRICS = (
     "train_loss",
     "validation_loss",
+    "validation_loss_tq1",
+    "validation_loss_tq2",
+    "validation_loss_tq3",
+    "validation_loss_tq4",
     "fid",
     "kid",
     "precision",
@@ -40,6 +49,53 @@ PAIRED_METRICS = (
     "wall_seconds",
     "gpu_hours",
 )
+
+# Two-sided 95% Student-t critical values for paired differences across
+# independent training seeds.
+# Current studies use n=5 or n=10; the wider table keeps the summary utility
+# well-defined for later fixed cohorts without adding a SciPy dependency.
+T_CRITICAL_95 = {
+    1: 12.706204736,
+    2: 4.30265273,
+    3: 3.182446305,
+    4: 2.776445105,
+    5: 2.570581836,
+    6: 2.446911851,
+    7: 2.364624252,
+    8: 2.306004135,
+    9: 2.262157163,
+    10: 2.228138852,
+    11: 2.20098516,
+    12: 2.17881283,
+    13: 2.160368656,
+    14: 2.144786688,
+    15: 2.131449546,
+    16: 2.119905299,
+    17: 2.109815578,
+    18: 2.10092204,
+    19: 2.093024054,
+    20: 2.085963447,
+    21: 2.079613845,
+    22: 2.073873068,
+    23: 2.06865761,
+    24: 2.063898562,
+    25: 2.059538553,
+    26: 2.055529439,
+    27: 2.051830516,
+    28: 2.048407142,
+    29: 2.045229642,
+    30: 2.042272456,
+}
+
+
+def mean_t95_interval(values: list[float]) -> tuple[float, float] | None:
+    if len(values) < 2:
+        return None
+    degrees_of_freedom = len(values) - 1
+    critical = T_CRITICAL_95.get(degrees_of_freedom, 1.959963985)
+    mean = statistics.mean(values)
+    margin = critical * statistics.stdev(values) / math.sqrt(len(values))
+    return mean - margin, mean + margin
 
 
 def parse_args() -> argparse.Namespace:
@@ -230,6 +286,10 @@ def main() -> None:
             if values:
                 item[f"{key}_mean"] = statistics.mean(values)
                 item[f"{key}_sd"] = statistics.stdev(values) if len(values) > 1 else 0.0
+                interval = mean_t95_interval(values)
+                if interval is not None:
+                    item[f"{key}_ci95_low"] = interval[0]
+                    item[f"{key}_ci95_high"] = interval[1]
         summary.append(item)
     write_csv(args.output, summary)
     print(f"wrote {len(rows)} runs to {args.raw_output}")

@@ -1,0 +1,9 @@
+name: tapered_ffn_b_five_seed_confirmation
+template: true
+phase: ffn_confirmation
+# Replace this budget with the calibration decision, then set template: false.
+max_steps: 100000
+runs:
+  - {id: e1_uniform_b, config: configs/ffn/dit_b_uniform_r5.yaml, seeds: [42, 123, 777, 2026, 9001]}
+  - {id: e3_front_b, config: configs/ffn/dit_b_front_b.yaml, seeds: [42, 123, 777, 2026, 9001]}
+  - {id: a1_reverse_b, config: configs/ffn/dit_b_reverse_b.yaml, seeds: [42, 123, 777, 2026, 9001]}

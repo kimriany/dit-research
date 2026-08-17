@@ -1,10 +1,12 @@
 # DiT Research Lab
 
-A0에 near parameter-matched된 hybrid DiT에서 recurrent spatial memory와 erase/write decoupling을 검증하는 연구 저장소입니다. Memory 비교군끼리는 파라미터와 analytic MAC를 exact-match합니다.
+현재 주 연구는 약 144M class-conditional DiT에서 **같은 총 FFN 예산을 네트워크 깊이에 어떻게 배분할지** 검증하는 Tapered-FFN 실험입니다. E1 uniform, E3 front-loaded, A1 reverse는 trainable parameters와 analytic MACs가 정확히 같습니다.
 
-5-seed 확장에서 noise-adaptive M2는 static MS보다 낮은 FID를 달성하지 못했습니다(`M2-MS=+0.179`, lower is better). 현재 후속 질문은 **coupled M0보다 fully separated M1이 일관되게 나은가**입니다. 기존 5-seed에서 M1은 M0보다 평균 FID가 2.107 낮고 4/5 seed에서 우세했으며, 이 사후 발견을 새 held-out seeds `1001–1005`로 복제합니다.
+이전에 수행한 hybrid-memory DiT 연구도 함께 보존합니다. Memory 비교군끼리는 파라미터와 analytic MAC를 exact-match했습니다.
 
-> GDN2 연산 자체의 최초성을 주장하지 않습니다. Noise-adaptive 설계의 null 결과와 fixed erase/write separation의 복제 결과를 구분해 보고합니다.
+완료된 memory 결과에서 noise-adaptive M2는 static MS보다 낮은 FID를 달성하지 못했습니다(`M2-MS=+0.179`, lower is better). M1 separation도 새 held-out seeds `1001–1005`에서 M0 대비 평균 FID `-0.317`, 3/5 seed 우세에 그쳤고 paired CI가 0을 포함했습니다. 기존·새 cohort를 합친 10-seed 평균은 `-1.212`였지만 통계적 분리를 보이지 않아, robust positive architecture claim은 중단했습니다.
+
+> GDN2 연산 자체의 최초성을 주장하지 않습니다. Noise-adaptive 설계와 fixed erase/write separation 모두 현재 CIFAR-10 조건에서 robust advantage를 입증하지 못한 별도 결과로 보존합니다.
 
 ## 현재 비교 모델
 
@@ -18,17 +20,15 @@ A0에 near parameter-matched된 hybrid DiT에서 recurrent spatial memory와 era
 
 M0/M1/MS/M2는 같은 projection/controller를 항상 계산하므로 trainable parameters와 analytic MACs가 정확히 같습니다. A0와의 parameter 차이는 452개(약 0.0014%)입니다. MS는 M2의 이득이 noise adaptivity가 아니라 단순히 좋은 중간 lambda를 학습한 결과인지 가르는 통제군입니다.
 
-## 이전 FFN-allocation scaffold
+## 현재 FFN-allocation 비교
 
-| ID | 모델 | FFN ratio (앞/중간/뒤) | 역할 |
-|---|---|---:|---|
-| E0 | DiT-S/2 backbone | 4 / 4 / 4 | 원본 기준 |
-| E1 | Uniform-expanded | 5 / 5 / 5 | 단순 용량 증가 통제 |
-| E2 | Taper-A | 5.5 / 5 / 4.5 | 약한 재배분 |
-| E3 | Taper-B | 6 / 5 / 4 | 중간 재배분 |
-| E4 | Taper-C | 7 / 5 / 3 | 강한 재배분 |
+| ID | 모델 | FFN ratio (앞/중간/뒤) | Params | GMAC/image | 역할 |
+|---|---|---:|---:|---:|---|
+| E1 | B-width Uniform-r5 | 5 / 5 / 5 | 143,702,028 | 26.6243 | primary control |
+| E3 | B-width Front-r5 | 6 / 5 / 4 | 143,702,028 | 26.6243 | front-loaded hypothesis |
+| A1 | B-width Reverse-r5 | 4 / 5 / 6 | 143,702,028 | 26.6243 | directionality control |
 
-E1~E4는 기존 실험 scaffold로 계속 보존됩니다. 현재 memory 연구의 primary comparison은 M2 vs M0/M1/MS입니다.
+먼저 seed 11의 E1만 50k→100k로 학습해 training horizon을 고정합니다. 그 뒤 E1/E3/A1을 seeds `42,123,777,2026,9001`로 비교합니다. confirmation matrix는 calibration 결론 전까지 template로 잠겨 있습니다.
 
 ## 현재 구현 범위
 
@@ -57,7 +57,29 @@ python -m pip install -e ".[eval,dev,memory]"
 
 현재 `requirements-lock.txt`는 기존 서버 환경 스냅샷입니다. 새 환경은 `pyproject.toml`을 기준으로 만들고, 실제 사용 환경을 다시 lock하는 편이 안전합니다.
 
-## 가장 먼저 실행할 것
+## FFN 실험 시작
+
+서버에서 다음 순서로 시작합니다.
+
+```bash
+source .venv/bin/activate
+python -m pytest -q
+
+python scripts/evaluate.py complexity \
+  --config configs/ffn/dit_b_uniform_r5.yaml \
+  --config configs/ffn/dit_b_front_b.yaml \
+  --config configs/ffn/dit_b_reverse_b.yaml \
+  --assert-matched
+
+python scripts/run_matrix.py \
+  --matrix configs/matrices/ffn_b_calibration_100k.yaml \
+  --max-steps 500 \
+  --batch-size 64 --grad-accum-steps 2
+```
+
+실제 500-step→50k→100k 실행과 FID/KID-5k 보정 절차는 [FFN 서버 실행 순서](docs/ffn_server_runbook.md)를 따릅니다.
+
+## Memory 실험 재현 시작
 
 ```bash
 # 1. CPU/GPU 공통 unit test
@@ -150,7 +172,8 @@ held-out 5-seed 복제 실험은 10절을 따릅니다.
 ## 문서
 
 - [Noise-adaptive memory 연구 계획](docs/noise_adaptive_memory_plan.md)
-- [이전 FFN-allocation 계획](docs/research_plan.md)
+- [현재 FFN-allocation 계획](docs/research_plan.md)
+- [144M FFN 서버 실행 순서](docs/ffn_server_runbook.md)
 - [실험 프로토콜](docs/experiment_protocol.md)
 - [GPU 서버 실행 순서](docs/server_runbook.md)
 - [선행연구와 novelty 경계](docs/literature.md)

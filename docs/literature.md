@@ -1,6 +1,58 @@
 # 선행연구와 claim 경계
 
-검색 기준일: 2026-08-06. 논문과 공식 저장소를 우선했다. 아래는 연구 범위를 정하는 overlap map이며 완전한 novelty 보증이 아니다. 초록 제출 전 제목·초록·인용망을 다시 확인한다.
+검색 기준일: 2026-08-17. 논문과 공식 저장소를 우선했다. 아래는 연구 범위를 정하는 overlap map이며 완전한 novelty 보증이 아니다. 초록 제출 전 제목·초록·인용망을 다시 확인한다.
+
+## A. 현재 Tapered-FFN 연구
+
+### 가장 직접적인 선행연구: Tapered Language Models
+
+- [Tapered Language Models](https://arxiv.org/abs/2606.23670)
+
+이 논문은 autoregressive language model에서 총 MLP width, parameters와 FLOPs를
+고정한 채 앞쪽 층을 넓히고 뒤쪽 층을 좁히는 taper를 제안했다. Transformer,
+Gated Attention, HOPE-attention, Titans와 여러 모델 규모에서 uniform MLP보다
+좋은 perplexity와 downstream 결과를 보고했다. 따라서 다음은 현재 연구의 신규
+주장이 아니다.
+
+- depth-wise MLP capacity가 uniform일 필요가 없다는 일반 원리
+- fixed-budget front-loaded MLP taper 자체
+- reverse allocation을 방향성 control로 사용하는 논리
+
+현재 연구의 전이 질문은 **같은 현상이 from-scratch class-conditional diffusion
+Transformer에서도 유지되는가**다. 네트워크 depth와 diffusion timestep을
+혼동하지 않으며, E1 `5/5/5`, E3 `6/5/4`, A1 `4/5/6`을 정확히 같은
+parameters/MAC에서 비교한다.
+
+### 데이터 기반 배분: Geometry-Guided FFN Allocation
+
+- [Geometry-Guided Layerwise FFN Width Allocation in Transformers](https://arxiv.org/abs/2608.02064)
+
+이 연구는 pretrained language model의 layer-wise representation geometry와
+perturbation sensitivity를 측정해 fixed-budget FFN width schedule을 정한다.
+수작업 cosine taper보다 나은 schedule도 보고했으므로, E3 `6/5/4`가 모든
+모델의 최적 배분이라고 주장할 수 없다. DiT의 block novelty를 timestep
+quartile별로 측정해 배분하는 것은 현재 confirmation 뒤의 별도 후속 질문이다.
+
+### DiT의 MLP width 선행연구: Grafting
+
+- [Exploring Diffusion Transformer Designs via Grafting](https://arxiv.org/abs/2506.05340)
+- [프로젝트](https://grafting.stanford.edu)
+
+Grafting은 pretrained DiT-XL/2의 baseline MLP ratio 4를 ratio 3 또는 6
+operator로 일부/전체 교체한 뒤 activation distillation과 lightweight
+fine-tuning으로 평가했다. 그러나 넓힌 층만큼 다른 층을 좁혀 총 MLP budget을
+보존하는 front-vs-reverse 실험은 아니다. 따라서 “DiT에서 MLP width를 처음
+바꾼 연구”는 주장할 수 없지만, **from-scratch DiT에서 exact fixed-budget
+depth direction을 paired seeds로 검증**하는 질문은 구분된다.
+
+### 현재 안전한 기여 문장
+
+> We test whether the front-loaded MLP allocation observed in autoregressive language models transfers to class-conditional Diffusion Transformers. At exactly matched trainable parameters and analytic MACs, we compare uniform, front-loaded, and reverse allocations across paired training seeds.
+
+CIFAR-10 결과만으로 보편적 DiT 원리를 주장하지 않는다. 144M confirmation에서
+사전 기준을 통과할 때만 ImageNet-32와 더 큰 scale을 일반화 단계로 추가한다.
+
+## B. 이전 hybrid-memory 연구
 
 ## 1. 가장 직접적인 기반
 
@@ -96,6 +148,8 @@ CIFAR-10 256-token 결과에서는 long-sequence efficiency를 일반화하지 �
 
 5k FID는 screening용이며 FID-50k와 직접 비교하지 않는다. Confirmation은 paired seeds와 KID uncertainty를 함께 보고한다. Repository의 Precision/Recall은 k-NN manifold 알고리즘은 따르되 Clean-FID Inception feature와 deterministic 10k subset을 쓰는 명시적 variant다.
 
-## 7. 이전 scaffold
+## 7. 현재 FFN 연구와의 관계
 
-Depth-wise FFN allocation/Tapered-FFN 문헌 정리는 이전 연구 scaffold인 `docs/research_plan.md`와 기존 configs에 남겨 두었다. 현재 초록의 claim 근거로 혼용하지 않는다.
+Memory 결과와 Tapered-FFN을 한 모델에서 동시에 바꾸지 않는다. 현재 FFN
+confirmation은 all-softmax DiT만 사용하며, memory의 null result는 별도 연구
+기록으로 보존한다.
