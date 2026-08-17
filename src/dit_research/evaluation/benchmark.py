@@ -53,9 +53,12 @@ def benchmark_model(
         if mode == "train"
         else None
     )
-    scaler = torch.cuda.amp.GradScaler(
-        enabled=device.type == "cuda" and actual_precision == "fp16"
-    )
+    scaler_enabled = device.type == "cuda" and actual_precision == "fp16"
+    if hasattr(torch.amp, "GradScaler"):
+        scaler = torch.amp.GradScaler("cuda", enabled=scaler_enabled)
+    else:
+        # PyTorch 2.2 compatibility; newer releases expose torch.amp.GradScaler.
+        scaler = torch.cuda.amp.GradScaler(enabled=scaler_enabled)
     images = torch.randn(
         batch_size,
         config.model.in_channels,

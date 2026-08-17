@@ -29,9 +29,9 @@ python scripts/evaluate.py complexity \
 예상값은 세 모델 모두 `143702028` trainable parameters와
 `26.624262144` GMAC/image다.
 
-## 2. 공통 batch 결정
+## 2. 공통 batch 결정 (완료)
 
-기본값 `64 × accumulation 2 = effective batch 128`을 먼저 측정한다.
+비교용 기본값 `64 × accumulation 2 = effective batch 128`은 다음과 같이 측정할 수 있다.
 
 ```bash
 python scripts/evaluate.py throughput \
@@ -40,7 +40,7 @@ python scripts/evaluate.py throughput \
   --warmup 10 --iterations 20 --repeats 1
 ```
 
-96GB에서 여유가 있으면 `128 × 1`도 측정한다.
+96GB 서버에서 `128 × 1`도 측정했다.
 
 ```bash
 python scripts/evaluate.py throughput \
@@ -49,11 +49,10 @@ python scripts/evaluate.py throughput \
   --warmup 10 --iterations 20 --repeats 1
 ```
 
-`images_per_second_median`이 높은 쪽을 쓰되 effective batch는 128로
-유지한다. 이 문서의 장기 실행 명령은 안전한 기본값인 `64 × 2`를 사용한다.
-`128 × 1`을 선택했다면 이후 모든 `run_matrix.py` 명령에
-`--batch-size 128 --grad-accum-steps 1`을 동일하게 붙인다. 이미 checkpoint를
-만든 뒤에는 batch 설정을 바꾸지 않는다.
+선택값은 `batch 128 × accumulation 1`(effective batch 128)이다. E1 BF16 train
+측정에서 906.73 images/s, peak allocated 18,101 MiB, peak reserved 18,490 MiB였다.
+이후 E1/E3/A1의 모든 학습은 이 설정을 고정하고, checkpoint를 만든 뒤에는
+batch 설정을 바꾸지 않는다.
 
 ## 3. calibration 명령 dry-run
 
@@ -61,7 +60,7 @@ python scripts/evaluate.py throughput \
 python scripts/run_matrix.py \
   --matrix configs/matrices/ffn_b_calibration_100k.yaml \
   --max-steps 500 \
-  --batch-size 64 --grad-accum-steps 2
+  --batch-size 128 --grad-accum-steps 1
 ```
 
 출력은 `ffn_calibration_e1_uniform_b_seed11` 한 run이어야 한다.
@@ -72,7 +71,7 @@ python scripts/run_matrix.py \
 python scripts/run_matrix.py \
   --matrix configs/matrices/ffn_b_calibration_100k.yaml \
   --max-steps 500 \
-  --batch-size 64 --grad-accum-steps 2 \
+  --batch-size 128 --grad-accum-steps 1 \
   --execute
 ```
 
@@ -97,7 +96,7 @@ source .venv/bin/activate
 python scripts/run_matrix.py \
   --matrix configs/matrices/ffn_b_calibration_100k.yaml \
   --max-steps 50000 \
-  --batch-size 64 --grad-accum-steps 2 \
+  --batch-size 128 --grad-accum-steps 1 \
   --resume-existing --execute
 ```
 
@@ -148,7 +147,7 @@ python scripts/summarize_results.py \
 ```bash
 python scripts/run_matrix.py \
   --matrix configs/matrices/ffn_b_calibration_100k.yaml \
-  --batch-size 64 --grad-accum-steps 2 \
+  --batch-size 128 --grad-accum-steps 1 \
   --resume-existing --execute
 ```
 
@@ -205,12 +204,12 @@ git push origin main
 python scripts/run_matrix.py \
   --matrix configs/matrices/ffn_b_confirmation_template.yaml \
   --max-steps 500 \
-  --batch-size 64 --grad-accum-steps 2 \
+  --batch-size 128 --grad-accum-steps 1 \
   --execute
 
 python scripts/run_matrix.py \
   --matrix configs/matrices/ffn_b_confirmation_template.yaml \
-  --batch-size 64 --grad-accum-steps 2 \
+  --batch-size 128 --grad-accum-steps 1 \
   --resume-existing --execute
 ```
 

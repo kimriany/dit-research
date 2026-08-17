@@ -30,7 +30,7 @@ model:
 
 diffusion: {timesteps: 1000, schedule: linear, beta_start: 0.0001, beta_end: 0.02}
 train:
-  {batch_size: 64, grad_accum_steps: 2, max_steps: 100000, learning_rate: 0.0001,
+  {batch_size: 128, grad_accum_steps: 1, max_steps: 100000, learning_rate: 0.0001,
    weight_decay: 0.0, ema_decay: 0.9999, precision: bf16, gradient_clip: 1.0,
    log_every: 100, validation_every: 1000, validation_batches: 80,
    checkpoint_every: 5000, sample_every: 5000}

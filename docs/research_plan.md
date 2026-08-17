@@ -52,7 +52,8 @@ primary comparison은 E3−E1이고, E3−A1은 앞쪽 집중이라는 방향성
 - 같은 checkpoint를 100k까지 exact resume하고 동일 평가 반복
 - 50k→100k FID-5k가 10% 이상 계속 개선되면 E1만 200k까지 추가 보정
 - 본 실험 budget은 모델 순위가 아니라 E1의 학습곡선만 보고 100k 또는 200k로 사전 고정
-- effective batch 128 고정; 64×2를 기본으로 하되 서버 benchmark 후 모든 모델에 같은 128×1을 사용할 수 있음
+- effective batch 128 고정; 서버 benchmark 결과에 따라 모든 모델에 `batch 128 × accumulation 1`을 사용
+- E1 측정값: BF16, 906.73 images/s, peak allocated 18,101 MiB, peak reserved 18,490 MiB
 
 이 단계에서 E3/A1을 보지 않으므로 학습 budget 선택이 제안 모델에 유리하게 오염되지 않는다. FID-5k는 50k와 100k 사이의 학습 진행 판단에만 사용하며 최종 FID-50k와 직접 비교하지 않는다.
 

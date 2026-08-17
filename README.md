@@ -74,7 +74,7 @@ python scripts/evaluate.py complexity \
 python scripts/run_matrix.py \
   --matrix configs/matrices/ffn_b_calibration_100k.yaml \
   --max-steps 500 \
-  --batch-size 64 --grad-accum-steps 2
+  --batch-size 128 --grad-accum-steps 1
 ```
 
 실제 500-step→50k→100k 실행과 FID/KID-5k 보정 절차는 [FFN 서버 실행 순서](docs/ffn_server_runbook.md)를 따릅니다.
