@@ -223,7 +223,18 @@ class RunMatrixTests(unittest.TestCase):
         self.assertEqual(evaluation.returncode, 0, evaluation.stderr)
         self.assertEqual(evaluation.stdout.count("scripts/evaluate.py"), 15)
 
-        blocked = self._run(confirmation, "--execute")
+        with confirmation.open("r", encoding="utf-8") as handle:
+            resolved_confirmation = yaml.safe_load(handle)
+        self.assertFalse(resolved_confirmation["template"])
+        self.assertEqual(resolved_confirmation["max_steps"], 200000)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            template_matrix = Path(temporary) / "template.yaml"
+            resolved_confirmation["template"] = True
+            template_matrix.write_text(
+                yaml.safe_dump(resolved_confirmation), encoding="utf-8"
+            )
+            blocked = self._run(template_matrix, "--execute")
         self.assertNotEqual(blocked.returncode, 0)
         self.assertIn("refusing to execute a template matrix", blocked.stderr)
 

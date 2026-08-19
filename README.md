@@ -28,7 +28,10 @@ M0/M1/MS/M2는 같은 projection/controller를 항상 계산하므로 trainable 
 | E3 | B-width Front-r5 | 6 / 5 / 4 | 143,702,028 | 26.6243 | front-loaded hypothesis |
 | A1 | B-width Reverse-r5 | 4 / 5 / 6 | 143,702,028 | 26.6243 | directionality control |
 
-먼저 seed 11의 E1만 50k→100k로 학습해 training horizon을 고정합니다. 그 뒤 E1/E3/A1을 seeds `42,123,777,2026,9001`로 비교합니다. confirmation matrix는 calibration 결론 전까지 template로 잠겨 있습니다.
+seed 11의 E1 보정에서 FID-5k가 50k/100k/200k에서 각각
+`62.313 / 13.764 / 11.278`을 기록했습니다. 100k→200k가 18.1% 개선되어
+confirmation budget을 200k로 고정했고 matrix 잠금을 해제했습니다. 이제 E1/E3/A1을
+seeds `42,123,777,2026,9001`로 비교합니다.
 
 ## 현재 구현 범위
 
@@ -77,7 +80,7 @@ python scripts/run_matrix.py \
   --batch-size 128 --grad-accum-steps 1
 ```
 
-실제 500-step→50k→100k 실행과 FID/KID-5k 보정 절차는 [FFN 서버 실행 순서](docs/ffn_server_runbook.md)를 따릅니다.
+보정 결과와 200k confirmation 실행 절차는 [FFN 서버 실행 순서](docs/ffn_server_runbook.md)를 따릅니다.
 
 ## Memory 실험 재현 시작
 

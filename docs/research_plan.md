@@ -54,14 +54,16 @@ primary comparison은 E3−E1이고, E3−A1은 앞쪽 집중이라는 방향성
 - 본 실험 budget은 모델 순위가 아니라 E1의 학습곡선만 보고 100k 또는 200k로 사전 고정
 - effective batch 128 고정; 서버 benchmark 결과에 따라 모든 모델에 `batch 128 × accumulation 1`을 사용
 - E1 측정값: BF16, 906.73 images/s, peak allocated 18,101 MiB, peak reserved 18,490 MiB
+- 보정 결과: FID-5k `62.313 (50k) → 13.764 (100k) → 11.278 (200k)`
+- 100k→200k FID가 18.1% 개선되어 confirmation budget을 **200k**로 고정
 
-이 단계에서 E3/A1을 보지 않으므로 학습 budget 선택이 제안 모델에 유리하게 오염되지 않는다. FID-5k는 50k와 100k 사이의 학습 진행 판단에만 사용하며 최종 FID-50k와 직접 비교하지 않는다.
+이 단계에서 E3/A1을 보지 않으므로 학습 budget 선택이 제안 모델에 유리하게 오염되지 않는다. FID-5k는 50k/100k/200k 보정 시점 사이의 학습 진행 판단에만 사용하며 최종 FID-50k와 직접 비교하지 않는다.
 
 ### Phase 2: confirmation
 
 - 모델: E1 Uniform-B, E3 Front-B, A1 Reverse-B
 - seed: 42, 123, 777, 2026, 9001
-- Phase 1에서 고정한 동일 update budget과 effective batch를 세 모델 모두 사용
+- Phase 1에서 고정한 200k update budget과 effective batch 128을 세 모델 모두 사용
 - final checkpoint: metric-best가 아니라 사전 정의한 마지막 budget의 EMA
 - final generation: 50k, 클래스당 5k, 동일 label/noise bank
 - primary metric: Clean-FID-50k, CIFAR-10 train reference, `mode=clean`

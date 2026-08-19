@@ -1,8 +1,8 @@
 name: tapered_ffn_b_five_seed_confirmation
-template: true
+template: false
 phase: ffn_confirmation
-# Replace this budget with the calibration decision, then set template: false.
-max_steps: 100000
+# Locked from the seed-11 E1 calibration: FID-5k improved 18.1% from 100k to 200k.
+max_steps: 200000
 runs:
   - {id: e1_uniform_b, config: configs/ffn/dit_b_uniform_r5.yaml, seeds: [42, 123, 777, 2026, 9001]}
   - {id: e3_front_b, config: configs/ffn/dit_b_front_b.yaml, seeds: [42, 123, 777, 2026, 9001]}

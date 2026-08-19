@@ -4,8 +4,10 @@
 고정예산 FFN allocation을 실행하는 절차다. 연구 질문과 판정 기준은
 `docs/research_plan.md`를 따른다.
 
-본 실험 15 runs는 잠겨 있다. 먼저 seed 11의 E1만 50k와 100k에서 평가해
-학습 budget을 고정한다. 이 보정 seed는 confirmation 평균에 넣지 않는다.
+보정은 완료됐다. seed 11의 E1 FID-5k는 50k/100k/200k에서
+`62.313 / 13.764 / 11.278`이었고, 100k→200k가 18.1% 개선되어 학습
+budget을 200k로 고정했다. 이 보정 seed는 confirmation 평균에 넣지 않는다.
+본 실험 15 runs의 matrix 잠금은 해제됐다.
 
 ## 1. 코드 받기와 환경 확인
 
@@ -175,9 +177,40 @@ python scripts/summarize_results.py \
   --raw-output results/ffn_b_calibration_step100k_runs.csv
 ```
 
-50k→100k FID-5k가 10% 이상 계속 개선되면 E1만 200k까지 추가해 본다.
-그보다 작으면 confirmation budget을 100k로 고정한다. 이 판단 전에 E3/A1은
-학습하지 않는다.
+50k→100k FID-5k가 77.9% 개선되어 E1을 200k까지 추가 학습했다.
+
+```bash
+python scripts/run_matrix.py \
+  --matrix configs/matrices/ffn_b_calibration_100k.yaml \
+  --max-steps 200000 \
+  --batch-size 128 --grad-accum-steps 1 \
+  --resume-existing --execute
+
+python scripts/sample_matrix.py \
+  --matrix configs/matrices/ffn_b_calibration_100k.yaml \
+  --num-samples 5000 --batch-size 256 \
+  --output-subdir fid_samples_5k_step200k \
+  --execute
+
+python scripts/evaluate_distribution_matrix.py \
+  --matrix configs/matrices/ffn_b_calibration_100k.yaml \
+  --reference datasets/cifar10_train_png \
+  --sample-subdir fid_samples_5k_step200k \
+  --expected-count 5000 --expected-reference-count 50000 \
+  --pr-sample-count 5000 \
+  --execute
+
+python scripts/summarize_results.py \
+  outputs/ffn_calibration_e1_uniform_b_seed11/final_metrics.json \
+  --control-group e1_uniform_b \
+  --phase ffn_calibration --step 200000 \
+  --expected-sample-count 5000 --expected-seeds 11 \
+  --output results/ffn_b_calibration_step200k.csv \
+  --raw-output results/ffn_b_calibration_step200k_runs.csv
+```
+
+100k→200k에서도 18.1% 개선되어 confirmation budget을 200k로 고정했다.
+보정 동안 E3/A1은 학습하지 않았다.
 
 ## 8. calibration 결과 올리기
 
@@ -191,9 +224,8 @@ git commit -m "Add 144M FFN training-horizon calibration"
 git push origin main
 ```
 
-결과를 확인한 뒤 `configs/matrices/ffn_b_confirmation_template.yaml`의
-`max_steps`를 확정하고 `template: false`로 바꾼다. template 상태에서는
-`--execute`가 의도적으로 거부된다.
+`configs/matrices/ffn_b_confirmation_template.yaml`은 `max_steps: 200000`,
+`template: false`로 확정되었다.
 
 ## 9. 잠금 해제 후 confirmation 절차
 
