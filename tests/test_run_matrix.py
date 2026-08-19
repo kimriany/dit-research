@@ -59,6 +59,38 @@ class RunMatrixTests(unittest.TestCase):
                 "resume-existing requires every selected checkpoint", completed.stderr
             )
 
+    def test_skip_complete_avoids_reopening_a_finished_training_run(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config = self._write_config(root)
+            matrix = root / "matrix.yaml"
+            matrix.write_text(
+                yaml.safe_dump(
+                    {
+                        "name": "skip_test",
+                        "template": False,
+                        "phase": "pilot",
+                        "max_steps": 10,
+                        "runs": [{"id": "m2", "config": str(config), "seeds": [11]}],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            run_directory = root / "outputs" / "pilot_m2_seed11"
+            checkpoint = run_directory / "checkpoints" / "latest.pt"
+            checkpoint.parent.mkdir(parents=True)
+            checkpoint.touch()
+            (run_directory / "final_metrics.json").write_text(
+                '{"step": 10}', encoding="utf-8"
+            )
+
+            completed = self._run(
+                matrix, "--resume-existing", "--skip-complete"
+            )
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertIn("skip complete training", completed.stdout)
+            self.assertNotIn("scripts/train.py", completed.stdout)
+
     def test_duplicate_run_ids_are_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

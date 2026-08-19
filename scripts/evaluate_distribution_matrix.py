@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import shlex
 import subprocess
 import sys
@@ -43,7 +44,11 @@ def metrics_are_complete(path: Path, expected_count: int) -> bool:
         return False
     return (
         payload.get("sample_count") == expected_count
-        and all(isinstance(payload.get(key), (int, float)) for key in ("kid", "precision", "recall"))
+        and all(
+            isinstance(payload.get(key), (int, float))
+            and math.isfinite(float(payload[key]))
+            for key in ("fid", "kid", "precision", "recall")
+        )
     )
 
 

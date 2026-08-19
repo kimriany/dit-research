@@ -81,6 +81,8 @@ python scripts/run_matrix.py \
 ```
 
 보정 결과와 200k confirmation 실행 절차는 [FFN 서버 실행 순서](docs/ffn_server_runbook.md)를 따릅니다.
+500-step confirmation 점검이 완료된 뒤에는 `python scripts/run_ffn_confirmation_pipeline.py --execute`
+한 명령으로 200k 학습부터 최종 CSV 집계까지 연속 실행할 수 있습니다.
 
 ## Memory 실험 재현 시작
 

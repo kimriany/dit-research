@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import shlex
 import subprocess
 import sys
@@ -29,6 +30,11 @@ def parse_args() -> argparse.Namespace:
         "--resume-existing",
         action="store_true",
         help="append --resume auto; every selected run must already have a checkpoint",
+    )
+    parser.add_argument(
+        "--skip-complete",
+        action="store_true",
+        help="skip runs whose final metrics and checkpoint already match the target step",
     )
     parser.add_argument(
         "--skip-backend-check",
@@ -61,6 +67,19 @@ def load_matrix(path: str | Path) -> dict[str, Any]:
     return raw
 
 
+def training_run_is_complete(
+    metrics_path: Path, checkpoint_path: Path, expected_step: int
+) -> bool:
+    if not metrics_path.is_file() or not checkpoint_path.is_file():
+        return False
+    try:
+        with metrics_path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return False
+    return payload.get("step") == expected_step
+
+
 def main() -> None:
     args = parse_args()
     matrix = load_matrix(args.matrix)
@@ -76,6 +95,7 @@ def main() -> None:
     selected_ids = set(args.only)
     commands: list[list[str]] = []
     resume_checkpoints: list[Path] = []
+    skipped_metrics: list[Path] = []
     requires_fla = False
     matrix_run_ids: set[str] = set()
     for run in matrix["runs"]:
@@ -104,6 +124,13 @@ def main() -> None:
             output_root = ROOT / output_root
         for seed in run["seeds"]:
             run_name = f"{matrix['phase']}_{run['id']}_seed{seed}"
+            checkpoint_path = output_root / run_name / "checkpoints" / "latest.pt"
+            metrics_path = output_root / run_name / "final_metrics.json"
+            if args.skip_complete and training_run_is_complete(
+                metrics_path, checkpoint_path, max_steps
+            ):
+                skipped_metrics.append(metrics_path)
+                continue
             commands.append(
                 [
                     sys.executable,
@@ -122,16 +149,14 @@ def main() -> None:
             )
             if args.resume_existing:
                 commands[-1].extend(("--resume", "auto"))
-                resume_checkpoints.append(
-                    output_root / run_name / "checkpoints" / "latest.pt"
-                )
+                resume_checkpoints.append(checkpoint_path)
             if args.batch_size is not None:
                 commands[-1].extend(("--set", f"train.batch_size={args.batch_size}"))
             if args.grad_accum_steps is not None:
                 commands[-1].extend(
                     ("--set", f"train.grad_accum_steps={args.grad_accum_steps}")
                 )
-    if not commands:
+    if not commands and not skipped_metrics:
         raise ValueError("matrix selection produced no commands")
     if args.resume_existing:
         missing_checkpoints = [
@@ -152,6 +177,8 @@ def main() -> None:
         print(shlex.join(preflight), flush=True)
         if args.execute:
             subprocess.run(preflight, cwd=ROOT, check=True)
+    for metrics_path in skipped_metrics:
+        print(f"skip complete training: {metrics_path}", flush=True)
     for command in commands:
         print(shlex.join(command), flush=True)
         if args.execute:

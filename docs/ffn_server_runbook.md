@@ -229,8 +229,9 @@ git push origin main
 
 ## 9. 잠금 해제 후 confirmation 절차
 
-아래는 matrix가 확정된 뒤 사용하는 절차다. 먼저 500-step으로 15개 run
-모두 checkpoint를 만든 뒤 같은 cohort를 재개한다.
+아래는 matrix가 확정된 뒤 사용하는 절차다. 500-step으로 15개 run
+모두 checkpoint를 만든 뒤, 다음 한 명령이 200k 학습·50k 샘플링·평가·집계를
+순차적으로 실행한다.
 
 ```bash
 python scripts/run_matrix.py \
@@ -239,10 +240,21 @@ python scripts/run_matrix.py \
   --batch-size 128 --grad-accum-steps 1 \
   --execute
 
+python scripts/run_ffn_confirmation_pipeline.py --execute
+```
+
+pipeline은 학습 완료 run, 완전한 샘플 폴더, 완료된 평가를 건너뛴다.
+학습 중 종료되면 각 checkpoint에서 재개하고, 불완전한 샘플 폴더는
+`.incomplete` 이름으로 보존한 뒤 해당 run을 다시 생성한다. 어느 단계든 실패하면
+즉시 멈추므로 같은 명령을 다시 실행하면 된다.
+
+아래는 pipeline이 내부적으로 실행하는 개별 명령이다.
+
+```bash
 python scripts/run_matrix.py \
   --matrix configs/matrices/ffn_b_confirmation_template.yaml \
   --batch-size 128 --grad-accum-steps 1 \
-  --resume-existing --execute
+  --resume-existing --skip-complete --execute
 ```
 
 학습 완료 후 50k 생성·평가를 실행한다.
